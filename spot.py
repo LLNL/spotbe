@@ -36,14 +36,14 @@ def hierarchical(args):
 
     #load cache or initiate if missing
     cache = []
-    fnames = list(map(lambda fname: dirpath / fname, args.filenames)) if args.filenames else [fpath for fpath in dirpath.iterdir() if fpath.name.endswith('.cali')] 
+    fnames = map(lambda fname: dirpath / fname, args.filenames) if args.filenames else [fpath for fpath in dirpath.iterdir() if fpath.name.endswith('.cali')] 
 
     import multiprocessing
-    metaList = multiprocessing.Pool().map(partial(_cali_list_globals, inclus_dur), fnames)
-    dataList = multiprocessing.Pool().map(partial(_cali_func_duration, inclus_dur), fnames)
+    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fnames)
+    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fnames)
     dataList = map(lambda item: {entry['function']: entry.get(inclus_dur, 0) for entry in item}, dataList)
 
-    out =  [*[{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]]
+    out =  [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
 
     # dump summary stdout
     json.dump(out, sys.stdout)
@@ -160,9 +160,10 @@ def summary(args):
             return {"dimension": name, "label": name}
 
 
-        metas = list(list(cache.values())[0].items())
-        chartList = list(map(getChartItem, metas))
-        tableList = list(map(getTableItem, metas))
+        #metas = list(list(cache.values())[0].items())
+        metas = list(cache.values())[0].items()
+        chartList = map(getChartItem, metas)
+        tableList = map(getTableItem, metas)
         layout = {"chart": chartList, "table": tableList}
      
 	
