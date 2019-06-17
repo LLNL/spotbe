@@ -13,7 +13,8 @@ def _sub_call(cmd):
 
 
 def _cali_func_duration(inclus_dur, filepath):
-    return _sub_call([CALIQUERY , '-q', 'SELECT function,{0} WHERE function FORMAT JSON'.format(inclus_dur), str(filepath) ])
+    #return _sub_call([CALIQUERY , '-q', 'SELECT function,{0} WHERE function FORMAT JSON'.format(inclus_dur), str(filepath) ])
+    return  _sub_call([CALIQUERY , '-q', 'SELECT function,{0} FORMAT JSON'.format(inclus_dur), str(filepath) ])
 
 
 def _cali_func_topdown(filepath):
@@ -36,12 +37,12 @@ def hierarchical(args):
 
     #load cache or initiate if missing
     cache = []
-    fnames = map(lambda fname: dirpath / fname, args.filenames) if args.filenames else [fpath for fpath in dirpath.iterdir() if fpath.name.endswith('.cali')] 
+    fnames = list(map(lambda fname: dirpath / fname, args.filenames) if args.filenames else [fpath for fpath in dirpath.iterdir() if fpath.name.endswith('.cali')] )
 
     import multiprocessing
-    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fnames)
-    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fnames)
-    dataList = map(lambda item: {entry['function']: entry.get(inclus_dur, 0) for entry in item}, dataList)
+    metaList = multiprocessing.Pool().map(partial(_cali_list_globals, inclus_dur), fnames)
+    dataList = multiprocessing.Pool().map(partial(_cali_func_duration, inclus_dur), fnames)
+    dataList = list(map(lambda item: {entry['function']: entry.get(inclus_dur, 0) for entry in item}, dataList))
 
     out =  [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
 
@@ -162,9 +163,9 @@ def summary(args):
 
         #metas = list(list(cache.values())[0].items())
         metas = list(cache.values())[0].items()
-        chartList = map(getChartItem, metas)
-        tableList = map(getTableItem, metas)
-        layout = {"chart": chartList, "table": tableList}
+        chartList = list(map(getChartItem, metas))
+        tableList = list(map(getTableItem, metas))
+        layout = {"charts": chartList, "table": tableList}
      
 	
 
