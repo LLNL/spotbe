@@ -13,8 +13,8 @@ def _sub_call(cmd):
 
 
 def _cali_func_duration(inclus_dur, filepath):
-    #return _sub_call([CALIQUERY , '-q', 'SELECT function,{0} WHERE function FORMAT JSON'.format(inclus_dur), str(filepath) ])
-    return  _sub_call([CALIQUERY , '-q', 'SELECT function,{0} FORMAT JSON'.format(inclus_dur), str(filepath) ])
+    return _sub_call([CALIQUERY , '-q', 'SELECT function,{0} WHERE function FORMAT JSON'.format(inclus_dur), str(filepath) ])
+    #return  _sub_call([CALIQUERY , '-q', 'SELECT function,{0} FORMAT JSON'.format(inclus_dur), str(filepath) ])
 
 
 def _cali_func_topdown(filepath):
@@ -25,9 +25,10 @@ def _cali_list_globals(inclus_dur, filepath):
     cali_globals = _sub_call( [CALIQUERY ,'-j', '--list-globals', str(filepath) ])[0]
 
     # duration needs to be added to cali globals... just get from select call for now
-    # just finds the highest duration in all the functions, assuming that would be the root 
-    cali_globals["Inclusive Duration"] = max( map( lambda item: item.get(inclus_dur, 0) 
-                                                 , _cali_func_duration(inclus_dur, filepath)))
+    # just finds the highest duration in all the functions, assuming that would be the root
+    if inclus_dur:
+        cali_globals["Inclusive Duration"] = max( map( lambda item: item.get(inclus_dur, 0) 
+                                                       , _cali_func_duration(inclus_dur, filepath)))
     return cali_globals 
 
 
@@ -40,15 +41,27 @@ def hierarchical(args):
     fnames = list(map(lambda fname: dirpath / fname, args.filenames) if args.filenames else [fpath for fpath in dirpath.iterdir() if fpath.name.endswith('.cali')] )
 
     import multiprocessing
-    metaList = multiprocessing.Pool().map(partial(_cali_list_globals, inclus_dur), fnames)
-    dataList = multiprocessing.Pool().map(partial(_cali_func_duration, inclus_dur), fnames)
+    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fnames)
+    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fnames)
     dataList = list(map(lambda item: {entry['function']: entry.get(inclus_dur, 0) for entry in item}, dataList))
 
-    out =  [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
+    out = [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
 
     # dump summary stdout
     json.dump(out, sys.stdout)
 
+
+# returns a single durations hierarchy given a filepath
+def durations(args):
+    filepath = Path(args.filepath)
+    inclus_dur = args.durationKey
+    data_list = _cali_func_duration(inclus_dur, filepath)
+    output = {}
+    for item in data_list: 
+        func_path = item["function"]
+        duration = item.get(inclus_dur, 0)
+        output[func_path] = max(duration, output.get(func_path, 0))
+    json.dump(output, sys.stdout)   
 
 #def hierarchical2(args):
 #    dirpath    = Path(args.directory)
@@ -82,17 +95,6 @@ def hierarchical(args):
 #    json.dump(cache, sys.stdout)
 
 
-# returns a single durations hierarchy given a filepath
-def durations(args):
-    filepath = Path(args.filepath)
-    inclus_dur = args.durationKey
-    data_list = _cali_func_duration(inclus_dur, filepath)
-    output = {}
-    for item in data_list: 
-        func_path = item["function"]
-        duration = item.get(inclus_dur, 0)
-        output[func_path] = max(duration, output.get(func_path, 0))
-    json.dump(output, sys.stdout)   
 
 
 #def durations2(args):
@@ -117,6 +119,9 @@ def durations(args):
 #
 #    json.dump({"filepaths": filepaths, "durationLists": [{"funcPath": f, "durationList": d} for (f,d) in durations.items()]}, sys.stdout)
 
+def removeChart():
+    pass
+
 
 def summary(args):
     dirpath    = Path(args.filepath)
@@ -131,15 +136,14 @@ def summary(args):
         cache_path.touch()
         os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
         cache_path.chmod(0o660)
-
+    inclus_dur = None
 
     # check for new cali files, if so add to cache and write to disk
-    cache_miss_fpaths = [fpath for fpath in dirpath.iterdir() if not fpath.name in cache and fpath.name.endswith('.cali')]
+    cache_miss_fpaths = [str(fpath) for fpath in dirpath.iterdir() if not fpath.name in cache and fpath.name.endswith('.cali')]
     if cache_miss_fpaths:
         import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fpaths, multiprocessing.Pool().map( _cali_list_globals, cache_miss_fpaths)))}
+        cache = {**cache, **dict(zip(cache_miss_fpaths, multiprocessing.Pool().map( partial(_cali_list_globals, inclus_dur), cache_miss_fpaths)))}
         pickle.dump(cache, cache_path.open('wb'))
-
     
     # layout: if filename provided then return contents,  else generate a generic one
     layout = ""
@@ -149,24 +153,23 @@ def summary(args):
     else:
         def getChartItem(meta):
             name = meta[0]
+            val = meta[1]
             try:
-                float(meta[1])
+                float(val)
                 viz = "BarChart"
             except:
                 viz = "PieChart"
+
             return {"dimension": name, "title": name, "viz": viz}
 
         def getTableItem(meta):
             name = meta[0]
             return {"dimension": name, "label": name}
 
-
-        #metas = list(list(cache.values())[0].items())
-        metas = list(cache.values())[0].items()
+        metas     = next(iter((cache.values()))).items()
         chartList = list(map(getChartItem, metas))
         tableList = list(map(getTableItem, metas))
         layout = {"charts": chartList, "table": tableList}
-     
 	
 
     # dump summary stdout
