@@ -1,10 +1,10 @@
 import argparse, json, sys, pickle, os, subprocess, getpass, urllib
 from functools import partial
-import math
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
 TEMPLATE_NOTEBOOK = '/usr/gapps/wf/web/spot/data/JupyterNotebooks/TemplateNotebook.ipynb'
-INCLUS_DURATION = 'sum#time.inclusive.duration'
+SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
+#INCLUS_DURATION = 'sum#time.inclusive.duration'
 
 def _sub_call(cmd): 
     # call a subcommand in a new process and parse json results into object
@@ -24,8 +24,7 @@ def _cali_list_globals(inclus_dur, filepath):
 
     # duration needs to be added to cali globals... just get from select call for now
     # just finds the highest duration in all the functions, assuming that would be the root 
-    cali_globals["Inclusive Duration"] = max( map( lambda item: item.get(inclus_dur, 0) 
-                                                 , _cali_func_duration(inclus_dur, filepath)))
+    cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
     return cali_globals 
 
 
@@ -35,12 +34,13 @@ def hierarchical(args):
 
     #load cache or initiate if missing
     cache = []
-    fnames = list(map(lambda fname: os.path.join(dirpath , fname), args.filenames) if args.filenames else [os.path.join(dirpath, fpath) for fpath in os.listdir(dirpath) if fpath.name.endswith('.cali')] )
+    filenames = args.filenames or [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+    fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
 
     import multiprocessing
-    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fnames)
-    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fnames)
-    dataList = list(map(lambda item: {entry['function']: entry.get(inclus_dur, 0) for entry in item}, dataList))
+    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fpaths)
+    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fpaths)
+    dataList = [{entry['function']: entry.get(inclus_dur, 1) for entry in item} for item in dataList]
 
     out = [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
 
@@ -82,42 +82,41 @@ def durations(args):
         output[func_path] = max(duration, output.get(func_path, 0))
     json.dump(output, sys.stdout)   
 
-def toggleChart(args):
+def _getSpotSettings(dirpath):
+    spot_settings = {}
+    try: spot_settings = pickle.load(open(SPOT_SETTINGS_PATH, 'rb'))
+    except: pass
+
+    # get show list
+    show_list = ['walltime', 'user', 'uid', 'launchdate', 'executable', 'executablepath', 'libraries', 'cmdline', 'hosthame', 'clustername', 'systime', 'cputime', 'fom' ]
+    try: show_list = spot_settings[dirpath]['show']
+    except: spot_settings[dirpath] = {'show': show_list}
+    return spot_settings
+
+
+def showChart(args):
 
     dirpath = args.dirpath
     chartname = args.chartname
-    show = True if args.show == 'true' else False
+    show = not args.hide
     
     # load spot settings from user home dir
-    spot_settings_filepath = os.path.expanduser('~/spot_settings.pk')
+    spot_settings = _getSpotSettings(dirpath)
 
-    spot_settings = {}
-    try: spot_settings = pickle.load(open(spot_settings_filepath, 'rb'))
-    except: pass
-
-    # toggle setting
-    hide_list = []
-    if spot_settings.get(dirpath, None):
-        if spot_settings[dirpath].get('hide', None):
-            # already have the list in settings, repoint to it:
-            hide_list = spot_settings[dirpath]['hide'] 
-        else:
-            # don't have it, so add it
-            spot_settings[dirpath]['hide'] = hide_list
-    else:
-        spot_settings[dirpath] = {'hide': hide_list}
-
+    # get show list
+    show_list = spot_settings[dirpath]['show']
+    
+    # toggle show
     if (show): 
-        try:
-            hide_list.remove(chartname)
-        except:
-            pass
+        if chartname not in show_list:
+            show_list.append(chartname)
     else: 
-        if chartname not in hide_list:
-            hide_list.append(chartname)
+        try:
+            show_list.remove(chartname)
+        except: pass
 
     # save settings to user home dir
-    pickle.dump(spot_settings, open(spot_settings_filepath, 'wb'))
+    pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
     
 def summary(args):
@@ -150,21 +149,30 @@ def summary(args):
 
     else:
         layout = _generateLayout(cache)
+    
+    show_list = _getSpotSettings(dirpath)[dirpath]['show']
+
+    for item in layout['charts']:
+        item['show'] = item['dimension'] in show_list
+    for item in layout['table']:
+        item['show'] = item['dimension'] in show_list
+    
+    json.dump(layout, sys.stdout)
+
 
     # filter out hidden results:
-    spot_settings_filepath = os.path.expanduser('~/spot_settings.pk')
 
-    hide = None
-    try: 
-        hide = pickle.load(open(spot_settings_filepath, 'rb')).get(cache_path, None)
-    except: pass
+    #hide = None
+    #try: 
+    #    hide = pickle.load(open(SPOT_SETTINGS_PATH, 'rb')).get(cache_path, None)
+    #except: pass
     
 	
-    filter(lambda el: el['dimension'] not in hide, layout['charts'])
-    filter(lambda el: el['dimension'] not in hide, layout['table'])
+    #filter(lambda el: el['dimension'] not in hide, layout['charts'])
+    #filter(lambda el: el['dimension'] not in hide, layout['table'])
 
     # dump summary stdout
-    json.dump({'data': cache, 'layout': layout}, sys.stdout)
+#    json.dump({'data': cache, 'layout': layout}, sys.stdout)
 
 
 def topdown(args):
@@ -212,11 +220,11 @@ summary_sub.add_argument("--layout", help="layout json filepath")
 #summary_sub.add_argument("--layout", help="layout json filepath", default="/usr/gapps/wf/web/spot/data/default_layout.json")
 summary_sub.set_defaults(func=summary)
 
-removeChart_sub = subparsers.add_parser("toggleChart")
-removeChart_sub.add_argument("dirpath", help="directory path of data to toggle chart")
-removeChart_sub.add_argument("chartname", help="chartname to toggle")
-removeChart_sub.add_argument("show", help="either true or false")
-removeChart_sub.set_defaults(func=toggleChart)
+showChart_sub = subparsers.add_parser("showChart")
+showChart_sub.add_argument("dirpath", help="directory path of data to toggle chart")
+showChart_sub.add_argument("chartname", help="chartname to toggle")
+showChart_sub.add_argument("--hide", action="store_true", help="set to hide instead of show")
+showChart_sub.set_defaults(func=showChart)
 
 durations_sub = subparsers.add_parser("durations")
 durations_sub.add_argument("durationKey", help="the key for the inclusive duration")
