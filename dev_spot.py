@@ -135,10 +135,11 @@ def summary(args):
 
 
     # check for new cali files, if so add to cache and write to disk
-    cache_miss_fpaths = [os.path.join(dirpath, fname) for fname in os.listdir(dirpath) if not os.path.join(dirpath, fname) in cache and fname.endswith('.cali')]
-    if cache_miss_fpaths:
+    cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
+    if cache_miss_fnames:
+        fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames]
         import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fpaths, multiprocessing.Pool(18).map( partial(_cali_list_globals, None), cache_miss_fpaths)))}
+        cache = {**cache, **dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( partial(_cali_list_globals, None), fpaths)))}
         pickle.dump(cache, open(cache_path, 'wb'))
 
     
@@ -156,23 +157,9 @@ def summary(args):
         item['show'] = item['dimension'] in show_list
     for item in layout['table']:
         item['show'] = item['dimension'] in show_list
-    
-    json.dump(layout, sys.stdout)
-
-
-    # filter out hidden results:
-
-    #hide = None
-    #try: 
-    #    hide = pickle.load(open(SPOT_SETTINGS_PATH, 'rb')).get(cache_path, None)
-    #except: pass
-    
-	
-    #filter(lambda el: el['dimension'] not in hide, layout['charts'])
-    #filter(lambda el: el['dimension'] not in hide, layout['table'])
 
     # dump summary stdout
-#    json.dump({'data': cache, 'layout': layout}, sys.stdout)
+    json.dump({'data': cache, 'layout': layout}, sys.stdout)
 
 
 def topdown(args):
