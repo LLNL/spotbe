@@ -2,13 +2,20 @@ import argparse, json, sys, pickle, os, subprocess, getpass, urllib
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
+CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
 TEMPLATE_NOTEBOOK = '/usr/gapps/wf/web/spot/data/JupyterNotebooks/TemplateNotebook.ipynb'
 SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
 #INCLUS_DURATION = 'sum#time.inclusive.duration'
 
+
+
 def _sub_call(cmd): 
     # call a subcommand in a new process and parse json results into object
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
+
+def _cali_to_json(filepath):
+    return _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
+
 
 
 def _cali_func_duration(inclus_dur, filepath):
@@ -47,32 +54,45 @@ def hierarchical(args):
     # dump summary stdout
     json.dump(out, sys.stdout)
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
-def _generateLayout(metasFromFilenameDict):
-        def genChartItem(meta):
-            name = meta[0]
-            val = meta[1]
-            try:
-                float(val)
-                viz = "BarChart"
-            except:
-                viz = "PieChart"
+def hierarchical2(args):
+    dirpath    = args.directory
 
-            return {"dimension": name, "title": name, "viz": viz}
+    #load cache or initiate if missing
+    filenames = args.filenames or [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+    fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
 
-        def genTableItem(meta):
-            name = meta[0]
-            return {"dimension": name, "label": name}
+    import multiprocessing
 
-        metas     = next(iter((metasFromFilenameDict.values()))).items()
-        chartList = list(map(genChartItem, metas))
-        tableList = list(map(genTableItem, metas))
-        return {"charts": chartList, "table": tableList}
+    cali_json = multiprocessing.Pool(18).map( _cali_to_json, fpaths)
+
+    for run in cali_json:
+        run['data'] = {record.pop('path', None): {key: float(val) for (key, val) in record.items() if is_number(val)} for record in run['records'] if 'path' in record }
+
+        del run['records']
+
+        run['meta'] = {}
+        for (key, val) in run['globals'].items():
+            adiakType = run['attributes'][key].get("adiak.type", None)  
+            if adiakType:
+                run['meta'][key] = {"value": val, "type": adiakType}
+        del run['attributes']
+        del run['globals']
+
+    json.dump(cali_json, sys.stdout)
+
+
 
 
 # returns a single durations hierarchy given a filepath
 def durations(args):
-    filepath = Path(args.filepath)
+    filepath = args.filepath
     inclus_dur = args.durationKey
     data_list = _cali_func_duration(inclus_dur, filepath)
     output = {}
@@ -118,6 +138,75 @@ def showChart(args):
     # save settings to user home dir
     pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
+def summary2(args):
+    dirpath    = args.filepath
+    cache_path = os.path.join(dirpath , "spot_cache.pkl")
+
+    #load cache or initiate if missing
+    cache = {}
+    #if os.path.exists(cache_path):
+    #    try: cache = pickle.load(open(cache_path,'rb'))
+    #    except:  pass
+    #else:
+    #    open(cache_path, 'a').close()  # touch file
+    #    os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
+    #    os.chmod(cache_path, 0o660)
+
+
+    # check for new cali files, if so add to cache and write to disk
+    #cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
+    cache_miss_fnames = [fname for fname in os.listdir(dirpath) ]
+    if cache_miss_fnames:
+        fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames if fname.endswith('.cali')]
+        import multiprocessing
+        cache = {**cache, **dict(zip(cache_miss_fnames, [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, fpaths)]))}
+        #pickle.dump(cache, open(cache_path, 'wb'))
+
+    
+    # layout: if filename provided then return contents,  else generate a generic one
+    first_file = (dict(next(iter((cache.values()))).items()))
+    metas = first_file['globals']
+    attributes = first_file['attributes']
+
+    layout = ""
+    if args.layout:
+        layout = json.load(open(args.layout))
+
+    else:
+        layout = _generateLayout(metas)
+
+    
+    show_list = _getSpotSettings(dirpath)[dirpath]['show']
+
+    for item in layout['charts']:
+        item['show'] = item['dimension'] in show_list
+        item['type'] = attributes[item['dimension']].get('adiak.type', 'string')
+    for item in layout['table']:
+        item['show'] = item['dimension'] in show_list
+        item['type'] = attributes[item['dimension']].get('adiak.type', 'string')
+
+    # dump summary stdout
+    json.dump({'data': {key: val['globals'] for (key, val) in cache.items()}, 'layout': layout}, sys.stdout, indent=4)
+
+def _generateLayout(metas):
+        def genChartItem(meta):
+            name = meta[0]
+            val = meta[1]
+            try:
+                float(val)
+                viz = "BarChart"
+            except:
+                viz = "PieChart"
+
+            return {"dimension": name, "title": name, "viz": viz}
+
+        def genTableItem(meta):
+            name = meta[0]
+            return {"dimension": name, "label": name}
+
+        chartList = list(map(genChartItem, metas.items()))
+        tableList = list(map(genTableItem, metas.items()))
+        return {"charts": chartList, "table": tableList}
     
 def summary(args):
     dirpath    = args.filepath
@@ -139,7 +228,7 @@ def summary(args):
     if cache_miss_fnames:
         fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames]
         import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( partial(_cali_list_globals, None), fpaths)))}
+        cache = {**cache, **dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( partial(_cali_to_json, None), fpaths)))}
         pickle.dump(cache, open(cache_path, 'wb'))
 
     
@@ -207,6 +296,11 @@ summary_sub.add_argument("--layout", help="layout json filepath")
 #summary_sub.add_argument("--layout", help="layout json filepath", default="/usr/gapps/wf/web/spot/data/default_layout.json")
 summary_sub.set_defaults(func=summary)
 
+summary2_sub = subparsers.add_parser("summary2")
+summary2_sub.add_argument("filepath", help="file and directory paths")
+summary2_sub.add_argument("--layout", help="layout json filepath")
+summary2_sub.set_defaults(func=summary2)
+
 showChart_sub = subparsers.add_parser("showChart")
 showChart_sub.add_argument("dirpath", help="directory path of data to toggle chart")
 showChart_sub.add_argument("chartname", help="chartname to toggle")
@@ -220,9 +314,9 @@ durations_sub.set_defaults(func=durations)
 
 hierarchical_sub = subparsers.add_parser("hierarchical")
 hierarchical_sub.add_argument("directory", help="directory")
-hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
+#hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
 hierarchical_sub.add_argument("--filenames", nargs="+", help="individual filenames sep by space")
-hierarchical_sub.set_defaults(func=hierarchical)
+hierarchical_sub.set_defaults(func=hierarchical2)
 
 topdown_sub = subparsers.add_parser("topdown")
 topdown_sub.add_argument("filepath", help="file and directory paths")
@@ -235,6 +329,8 @@ jupyter_sub.set_defaults(func=jupyter)
 mpitrace = subparsers.add_parser("mpitrace")
 mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
 mpitrace.set_defaults(func=mpi_trace)
+
+
 
 
 # get input names from command line args  (these are filenames and directory names)
