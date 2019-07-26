@@ -1,4 +1,4 @@
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse
+import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
@@ -214,7 +214,7 @@ def jupyter(args):
   open(ntbk_path, 'w').write(ntbk_template_str)
 
   # return Jupyterhub address
-  print('https://rzlc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format(getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
+  print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format("rz" if socket.gethostname().startswith('rz') else "", getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
 
 
 # argparse
