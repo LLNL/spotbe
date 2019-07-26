@@ -1,4 +1,4 @@
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib
+import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
@@ -138,7 +138,7 @@ def showChart(args):
     # save settings to user home dir
     pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
-def summary2(args):
+def summary(args):
     dirpath    = args.filepath
     cache_path = os.path.join(dirpath , "spot_cache.pkl")
 
@@ -163,92 +163,43 @@ def summary2(args):
         #pickle.dump(cache, open(cache_path, 'wb'))
 
     
-    # layout: if filename provided then return contents,  else generate a generic one
-    first_file = (dict(next(iter((cache.values()))).items()))
-    metas = first_file['globals']
-    attributes = first_file['attributes']
-
-    layout = ""
-    if args.layout:
-        layout = json.load(open(args.layout))
-
-    else:
-        layout = _generateLayout(metas)
-
+    metaTypes = dict()
+    for run in cache.values():
+        metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
     
-    show_list = _getSpotSettings(dirpath)[dirpath]['show']
 
+    # layout: if filename provided then return contents,  else generate a generic one
+    layout = json.load(open(args.layout)) if args.layout else _generateLayout(metaTypes)
+    show_list = _getSpotSettings(dirpath)[dirpath]['show']
     for item in layout['charts']:
         item['show'] = item['dimension'] in show_list
-        item['type'] = attributes[item['dimension']].get('adiak.type', 'string')
+        item['type'] = metaTypes[item['dimension']]
     for item in layout['table']:
         item['show'] = item['dimension'] in show_list
-        item['type'] = attributes[item['dimension']].get('adiak.type', 'string')
+        item['type'] = metaTypes[item['dimension']]
+
+    # data:  if file is missing data from another file then zero it out
+    data = {}
+    for (fname, f) in cache.items():
+        globs = f['globals']
+        for (metaName, metaType) in metaTypes.items():
+            if not metaName in globs:
+                globs[metaName] = 0 if metaType in ['int', 'double', "timeval", "date"] else ""
+        data[fname] = globs 
 
     # dump summary stdout
-    json.dump({'data': {key: val['globals'] for (key, val) in cache.items()}, 'layout': layout}, sys.stdout, indent=4)
+    json.dump({'data': data, 'layout': layout}, sys.stdout, indent=4)
 
-def _generateLayout(metas):
-        def genChartItem(meta):
-            name = meta[0]
-            val = meta[1]
-            try:
-                float(val)
-                viz = "BarChart"
-            except:
-                viz = "PieChart"
+def _generateLayout(metaTypes):
+    tableList = [{"dimension": name, "label": name} for (name, type_) in metaTypes.items()]
+    chartList = [{"dimension": name, "title": name, "viz": _getVizType(type_)} for (name, type_) in metaTypes.items()]
+    return {"charts": chartList, "table": tableList}
 
-            return {"dimension": name, "title": name, "viz": viz}
-
-        def genTableItem(meta):
-            name = meta[0]
-            return {"dimension": name, "label": name}
-
-        chartList = list(map(genChartItem, metas.items()))
-        tableList = list(map(genTableItem, metas.items()))
-        return {"charts": chartList, "table": tableList}
-    
-def summary(args):
-    dirpath    = args.filepath
-    cache_path = os.path.join(dirpath , "spot_cache.pkl")
-
-    #load cache or initiate if missing
-    cache = {}
-    if os.path.exists(cache_path):
-        try: cache = pickle.load(open(cache_path,'rb'))
-        except:  pass
+def _getVizType(valType):
+    if valType in ['int', 'double', "timeval", "date"]:
+       return "BarChart"
     else:
-        open(cache_path, 'a').close()  # touch file
-        os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
-        os.chmod(cache_path, 0o660)
-
-
-    # check for new cali files, if so add to cache and write to disk
-    cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
-    if cache_miss_fnames:
-        fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames]
-        import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( partial(_cali_to_json, None), fpaths)))}
-        pickle.dump(cache, open(cache_path, 'wb'))
-
-    
-    # layout: if filename provided then return contents,  else generate a generic one
-    layout = ""
-    if args.layout:
-        layout = json.load(open(args.layout))
-
-    else:
-        layout = _generateLayout(cache)
-    
-    show_list = _getSpotSettings(dirpath)[dirpath]['show']
-
-    for item in layout['charts']:
-        item['show'] = item['dimension'] in show_list
-    for item in layout['table']:
-        item['show'] = item['dimension'] in show_list
-
-    # dump summary stdout
-    json.dump({'data': cache, 'layout': layout}, sys.stdout)
+       return "PieChart"
 
 
 def topdown(args):
@@ -262,7 +213,6 @@ def topdown(args):
              )
 
 
-
 def mpi_trace(args):
   print(open(args.filepath).read())
 
@@ -273,17 +223,20 @@ def jupyter(args):
   # create notebook in ~/spot_jupyter dir
 
   #  - first create directory
-  cali_path = Path(args.cali_filepath).resolve()
-  ntbk_dir = Path.home() / 'spot_jupyter'
-  ntbk_dir.mkdir(exist_ok=True)
+  cali_path = args.cali_filepath
+  ntbk_dir = os.path.expanduser('~/spot_jupyter')
+  try:
+      os.mkdir(ntbk_dir)
+  except: pass
 
   #  - copy template (replacing CALI_FILE_NAME)
-  ntbk_path = ntbk_dir / (cali_path.stem + '.ipynb')
+  
+  ntbk_path = os.path.join(ntbk_dir, cali_path[cali_path.rfind('/')+1:cali_path.rfind(".")] + '.ipynb')
   ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path))
   open(ntbk_path, 'w').write(ntbk_template_str)
 
   # return Jupyterhub address
-  print('https://rzlc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format(getpass.getuser(), urllib.parse.quote(ntbk_path.name)))
+  print('https://rzlc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format(getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
 
 
 # argparse
@@ -293,13 +246,8 @@ subparsers = parser.add_subparsers(dest="sub_name")
 summary_sub = subparsers.add_parser("summary")
 summary_sub.add_argument("filepath", help="file and directory paths")
 summary_sub.add_argument("--layout", help="layout json filepath")
-#summary_sub.add_argument("--layout", help="layout json filepath", default="/usr/gapps/wf/web/spot/data/default_layout.json")
 summary_sub.set_defaults(func=summary)
 
-summary2_sub = subparsers.add_parser("summary2")
-summary2_sub.add_argument("filepath", help="file and directory paths")
-summary2_sub.add_argument("--layout", help="layout json filepath")
-summary2_sub.set_defaults(func=summary2)
 
 showChart_sub = subparsers.add_parser("showChart")
 showChart_sub.add_argument("dirpath", help="directory path of data to toggle chart")
