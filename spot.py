@@ -3,7 +3,7 @@ from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
 CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
-TEMPLATE_NOTEBOOK = '/usr/gapps/wf/web/spot/data/JupyterNotebooks/TemplateNotebook.ipynb'
+TEMPLATE_NOTEBOOK = '/usr/gapps/spot/templates/TemplateNotebook.ipynb'
 SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
 #INCLUS_DURATION = 'sum#time.inclusive.duration'
 
@@ -35,24 +35,6 @@ def _cali_list_globals(inclus_dur, filepath):
     return cali_globals 
 
 
-def hierarchical(args):
-    dirpath    = args.directory
-    inclus_dur = args.durationKey
-
-    #load cache or initiate if missing
-    cache = []
-    filenames = args.filenames or [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
-    fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
-
-    import multiprocessing
-    metaList = multiprocessing.Pool(18).map(partial(_cali_list_globals, inclus_dur), fpaths)
-    dataList = multiprocessing.Pool(18).map(partial(_cali_func_duration, inclus_dur), fpaths)
-    dataList = [{entry['function']: entry.get(inclus_dur, 1) for entry in item} for item in dataList]
-
-    out = [{'meta': m, 'data': d} for (m, d) in zip(metaList, dataList)]
-
-    # dump summary stdout
-    json.dump(out, sys.stdout)
 
 def is_number(s):
     try:
@@ -61,7 +43,7 @@ def is_number(s):
     except ValueError:
         return False
 
-def hierarchical2(args):
+def hierarchical(args):
     dirpath    = args.directory
 
     #load cache or initiate if missing
@@ -93,13 +75,9 @@ def hierarchical2(args):
 # returns a single durations hierarchy given a filepath
 def durations(args):
     filepath = args.filepath
-    inclus_dur = args.durationKey
-    data_list = _cali_func_duration(inclus_dur, filepath)
-    output = {}
-    for item in data_list: 
-        func_path = item["function"]
-        duration = item.get(inclus_dur, 0)
-        output[func_path] = max(duration, output.get(func_path, 0))
+    records = _cali_to_json(filepath)['records']
+    durationKey = (list(records[0].keys())[0])
+    output = {record["path"]: record[durationKey] for record in records if record.get("path", None)}
     json.dump(output, sys.stdout)   
 
 def _getSpotSettings(dirpath):
@@ -256,7 +234,6 @@ showChart_sub.add_argument("--hide", action="store_true", help="set to hide inst
 showChart_sub.set_defaults(func=showChart)
 
 durations_sub = subparsers.add_parser("durations")
-durations_sub.add_argument("durationKey", help="the key for the inclusive duration")
 durations_sub.add_argument("filepath", help="file and directory paths")
 durations_sub.set_defaults(func=durations)
 
@@ -264,7 +241,7 @@ hierarchical_sub = subparsers.add_parser("hierarchical")
 hierarchical_sub.add_argument("directory", help="directory")
 #hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
 hierarchical_sub.add_argument("--filenames", nargs="+", help="individual filenames sep by space")
-hierarchical_sub.set_defaults(func=hierarchical2)
+hierarchical_sub.set_defaults(func=hierarchical)
 
 topdown_sub = subparsers.add_parser("topdown")
 topdown_sub.add_argument("filepath", help="file and directory paths")
