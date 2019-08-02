@@ -1,4 +1,4 @@
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse
+import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
@@ -34,7 +34,16 @@ def _cali_list_globals(inclus_dur, filepath):
     cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
     return cali_globals 
 
-
+def findCaliFiles(recurse, dirpath):
+    if recurse or True:
+        filenames = []
+        for dir, subdir, files in os.walk(dirpath):
+            for file in files:
+                if file.endswith('.cali'):
+                    filenames.append(os.path.join(dir, file))
+    else:
+        filenames = [os.path.join(dirpath, fname) for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+    return filenames;
 
 def is_number(s):
     try:
@@ -45,9 +54,9 @@ def is_number(s):
 
 def hierarchical(args):
     dirpath    = args.directory
-
+    recurse    = args.recurse
     #load cache or initiate if missing
-    filenames = args.filenames or [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+    filenames = args.filenames or findCaliFiles(recurse, dirpath)
     fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
 
     import multiprocessing
@@ -119,6 +128,7 @@ def showChart(args):
 def summary(args):
     dirpath    = args.filepath
     cache_path = os.path.join(dirpath , "spot_cache.pkl")
+    recurse    = args.recurse
 
     #load cache or initiate if missing
     cache = {}
@@ -133,11 +143,11 @@ def summary(args):
 
     # check for new cali files, if so add to cache and write to disk
     #cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
-    cache_miss_fnames = [fname for fname in os.listdir(dirpath) ]
+    filenames = findCaliFiles(recurse, dirpath)
+    cache_miss_fnames = [fname for fname in filenames if not fname in cache]
     if cache_miss_fnames:
-        fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames if fname.endswith('.cali')]
         import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fnames, [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, fpaths)]))}
+        cache.update(dict(zip(cache_miss_fnames, [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, cache_miss_fnames)])))
         #pickle.dump(cache, open(cache_path, 'wb'))
 
     
@@ -214,7 +224,7 @@ def jupyter(args):
   open(ntbk_path, 'w').write(ntbk_template_str)
 
   # return Jupyterhub address
-  print('https://rzlc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format(getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
+  print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format("rz" if socket.gethostname().startswith('rz') else "", getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
 
 
 # argparse
@@ -224,6 +234,9 @@ subparsers = parser.add_subparsers(dest="sub_name")
 summary_sub = subparsers.add_parser("summary")
 summary_sub.add_argument("filepath", help="file and directory paths")
 summary_sub.add_argument("--layout", help="layout json filepath")
+summary_sub.add_argument("--recurse", dest="recurse", action="store_true")
+summary_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
+summary_sub.set_defaults(recurse=True)
 summary_sub.set_defaults(func=summary)
 
 
@@ -240,6 +253,9 @@ durations_sub.set_defaults(func=durations)
 hierarchical_sub = subparsers.add_parser("hierarchical")
 hierarchical_sub.add_argument("directory", help="directory")
 #hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
+hierarchical_sub.add_argument("--recurse", dest="recurse", action="store_true")
+hierarchical_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
+hierarchical_sub.set_defaults(recurse=True)
 hierarchical_sub.add_argument("--filenames", nargs="+", help="individual filenames sep by space")
 hierarchical_sub.set_defaults(func=hierarchical)
 
