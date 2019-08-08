@@ -1,3 +1,4 @@
+#! /usr/tce/bin/python3
 import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket
 from functools import partial
 
@@ -37,10 +38,10 @@ def _cali_list_globals(inclus_dur, filepath):
 def findCaliFiles(recurse, dirpath):
     if recurse or True:
         filenames = []
-        for dir, subdir, files in os.walk(dirpath):
-            for file in files:
-                if file.endswith('.cali'):
-                    filenames.append(os.path.join(dir, file))
+        for root, subdir, files in os.walk(dirpath):
+            for fname in files:
+                if fname.endswith('.cali'):
+                    filenames.append(os.path.join(root, fname))
     else:
         filenames = [os.path.join(dirpath, fname) for fname in os.listdir(dirpath) if fname.endswith('.cali')]
     return filenames;
@@ -54,9 +55,8 @@ def is_number(s):
 
 def hierarchical(args):
     dirpath    = args.directory
-    recurse    = args.recurse
     #load cache or initiate if missing
-    filenames = args.filenames or findCaliFiles(recurse, dirpath)
+    filenames = args.filenames
     fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
 
     import multiprocessing
@@ -77,6 +77,11 @@ def hierarchical(args):
         del run['globals']
 
     json.dump(cali_json, sys.stdout)
+
+def defaultKey(filepath):
+    records = _cali_to_json(filepath)['records']
+    key = (list(records[0].keys())[0])
+    return key
 
 
 
@@ -126,7 +131,9 @@ def showChart(args):
     pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
 def summary(args):
-    dirpath    = args.filepath
+    dirpath    = args.dirpath
+    dirpath_len = len(dirpath) + 1
+
     cache_path = os.path.join(dirpath , "spot_cache.pkl")
     recurse    = args.recurse
 
@@ -147,7 +154,7 @@ def summary(args):
     cache_miss_fnames = [fname for fname in filenames if not fname in cache]
     if cache_miss_fnames:
         import multiprocessing
-        cache.update(dict(zip(cache_miss_fnames, [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, cache_miss_fnames)])))
+        cache.update(dict(zip([fpath[dirpath_len:] for fpath in cache_miss_fnames], [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, cache_miss_fnames)])))
         #pickle.dump(cache, open(cache_path, 'wb'))
 
     
@@ -218,9 +225,11 @@ def jupyter(args):
   except: pass
 
   #  - copy template (replacing CALI_FILE_NAME)
-  
+  metric_name = defaultKey(str(cali_path))  
+
   ntbk_path = os.path.join(ntbk_dir, cali_path[cali_path.rfind('/')+1:cali_path.rfind(".")] + '.ipynb')
-  ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path))
+  ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+
   open(ntbk_path, 'w').write(ntbk_template_str)
 
   # return Jupyterhub address
@@ -232,7 +241,7 @@ parser = argparse.ArgumentParser(description="sup")
 subparsers = parser.add_subparsers(dest="sub_name")
 
 summary_sub = subparsers.add_parser("summary")
-summary_sub.add_argument("filepath", help="file and directory paths")
+summary_sub.add_argument("dirpath", help="directory path")
 summary_sub.add_argument("--layout", help="layout json filepath")
 summary_sub.add_argument("--recurse", dest="recurse", action="store_true")
 summary_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
