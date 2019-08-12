@@ -35,15 +35,18 @@ def _cali_list_globals(inclus_dur, filepath):
     cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
     return cali_globals 
 
+def _flatten_list(l):
+    return [item for sublist in l for item in sublist]
+
 def findCaliFiles(recurse, dirpath):
     if recurse or True:
         filenames = []
         for root, subdir, files in os.walk(dirpath):
             for fname in files:
                 if fname.endswith('.cali'):
-                    filenames.append(os.path.join(root, fname))
+                    filenames.append(os.path.join(root, fname)[len(dirpath) + 1:])
     else:
-        filenames = [os.path.join(dirpath, fname) for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+        filenames = [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
     return filenames;
 
 def is_number(s):
@@ -56,8 +59,8 @@ def is_number(s):
 def hierarchical(args):
     dirpath    = args.directory
     #load cache or initiate if missing
-    filenames = args.filenames
-    fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
+    filenames = args.filenames or findCaliFiles(True, dirpath)
+    fpaths = [os.path.join(dirpath , fname) for fname in filenames ] 
 
     import multiprocessing
 
@@ -130,34 +133,47 @@ def showChart(args):
     # save settings to user home dir
     pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
+def getFiles(subDir):
+    return [os.path.join(subDir, fpath) for fpath in findCaliFiles(True, subDir)]
+
 def summary(args):
-    dirpath    = args.dirpath
-    dirpath_len = len(dirpath) + 1
+    import multiprocessing
+    dirpath    = args.dirpath.rstrip('/')
+     
 
     cache_path = os.path.join(dirpath , "spot_cache.pkl")
     recurse    = args.recurse
 
     #load cache or initiate if missing
     cache = {}
-    #if os.path.exists(cache_path):
-    #    try: cache = pickle.load(open(cache_path,'rb'))
-    #    except:  pass
-    #else:
-    #    open(cache_path, 'a').close()  # touch file
-    #    os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
-    #    os.chmod(cache_path, 0o660)
+    if os.path.exists(cache_path):
+        try: 
+            cache = pickle.load(open(cache_path,'rb'))
+            #print('cache loaded', cache.keys())
+        except:  pass
+    else:
+        open(cache_path, 'a').close()  # touch file
+        os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
+        os.chmod(cache_path, 0o660)
 
 
     # check for new cali files, if so add to cache and write to disk
-    #cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
-    filenames = findCaliFiles(recurse, dirpath)
-    cache_miss_fnames = [fname for fname in filenames if not fname in cache]
-    if cache_miss_fnames:
-        import multiprocessing
-        cache.update(dict(zip([fpath[dirpath_len:] for fpath in cache_miss_fnames], [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, cache_miss_fnames)])))
-        #pickle.dump(cache, open(cache_path, 'wb'))
 
-    
+    #filenames = findCaliFiles(recurse, dirpath)
+
+    # this parallelizes the filename search by going one level deep and parallelizeing on that level
+    subpaths = os.listdir(dirpath)
+    caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
+    filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
+
+
+    cache_miss_fnames = [fname for fname in filenames if not fname in cache]
+    #print('missed', cache_miss_fnames)
+    if cache_miss_fnames:
+        cache.update(dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( _cali_to_json, [os.path.join(dirpath, fname) for fname in cache_miss_fnames]))))
+
+        pickle.dump(cache, open(cache_path, 'wb'))
+
     metaTypes = dict()
     for run in cache.values():
         metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
@@ -279,8 +295,6 @@ jupyter_sub.set_defaults(func=jupyter)
 mpitrace = subparsers.add_parser("mpitrace")
 mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
 mpitrace.set_defaults(func=mpi_trace)
-
-
 
 
 # get input names from command line args  (these are filenames and directory names)
