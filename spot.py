@@ -1,11 +1,12 @@
 #! /usr/tce/bin/python3
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket
+import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket, base64, hashlib
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
 CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
 TEMPLATE_NOTEBOOK = '/usr/gapps/spot/templates/TemplateNotebook.ipynb'
 SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
+SPOT_CACHE_NAME = '.spot_cache.pkl'
 #INCLUS_DURATION = 'sum#time.inclusive.duration'
 
 
@@ -35,8 +36,8 @@ def _cali_list_globals(inclus_dur, filepath):
     cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
     return cali_globals 
 
-def _flatten_list(l):
-    return [item for sublist in l for item in sublist]
+def _8charKey(fpath):
+    return base64.b64encode(hashlib.md5(fpath.encode('utf8')).digest())[:8].decode('utf8')
 
 def findCaliFiles(recurse, dirpath):
     if recurse or True:
@@ -58,8 +59,12 @@ def is_number(s):
 
 def hierarchical(args):
     dirpath    = args.directory
+    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
     #load cache or initiate if missing
-    filenames = args.filenames or findCaliFiles(True, dirpath)
+    filename_hashes = args.filenames
+    fNameDict = pickle.load(open(cache_path,'rb'))['filenames']
+    filenames = [fNameDict[fHash] for fHash in filename_hashes]
+
     fpaths = [os.path.join(dirpath , fname) for fname in filenames ] 
 
     import multiprocessing
@@ -141,11 +146,11 @@ def summary(args):
     dirpath    = args.dirpath.rstrip('/')
      
 
-    cache_path = os.path.join(dirpath , "spot_cache.pkl")
+    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
     recurse    = args.recurse
 
     #load cache or initiate if missing
-    cache = {}
+    cache = {'filenames': {}, 'data': {}}
     if os.path.exists(cache_path):
         try: 
             cache = pickle.load(open(cache_path,'rb'))
@@ -159,23 +164,25 @@ def summary(args):
 
     # check for new cali files, if so add to cache and write to disk
 
-    #filenames = findCaliFiles(recurse, dirpath)
+    # non-parallel version of search
+    filenames = findCaliFiles(recurse, dirpath)
 
     # this parallelizes the filename search by going one level deep and parallelizeing on that level
-    subpaths = os.listdir(dirpath)
-    caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
-    filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
+    #subpaths = os.listdir(dirpath)
+    #caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
+    #filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
 
 
-    cache_miss_fnames = [fname for fname in filenames if not fname in cache]
-    #print('missed', cache_miss_fnames)
+    cache_miss_fnames = [fname for fname in filenames if not fname in cache['filenames'].values()]
+    cache_miss_hashes = [_8charKey(fname) for fname in cache_miss_fnames]
     if cache_miss_fnames:
-        cache.update(dict(zip(cache_miss_fnames, multiprocessing.Pool(18).map( _cali_to_json, [os.path.join(dirpath, fname) for fname in cache_miss_fnames]))))
+        cache['filenames'] = {**cache['filenames'], **dict(zip(cache_miss_hashes, cache_miss_fnames))}
+        cache['data'].update(dict(zip(cache_miss_hashes, multiprocessing.Pool(18).map( _cali_to_json, [os.path.join(dirpath, fname) for fname in cache_miss_fnames]))))
 
         pickle.dump(cache, open(cache_path, 'wb'))
 
     metaTypes = dict()
-    for run in cache.values():
+    for run in cache['data'].values():
         metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
     
 
@@ -191,7 +198,7 @@ def summary(args):
 
     # data:  if file is missing data from another file then zero it out
     data = {}
-    for (fname, f) in cache.items():
+    for (fname, f) in cache['data'].items():
         globs = f['globals']
         for (metaName, metaType) in metaTypes.items():
             if not metaName in globs:
