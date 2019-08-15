@@ -1,10 +1,12 @@
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket
+#! /usr/tce/bin/python3
+import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket, base64, hashlib
 from functools import partial
 
 CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
 CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
 TEMPLATE_NOTEBOOK = '/usr/gapps/spot/templates/TemplateNotebook.ipynb'
 SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
+SPOT_CACHE_NAME = '.spot_cache.pkl'
 #INCLUS_DURATION = 'sum#time.inclusive.duration'
 
 
@@ -14,8 +16,9 @@ def _sub_call(cmd):
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
 def _cali_to_json(filepath):
-    return _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
-
+    cali_json = _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
+    cali_json['globals']['filepath'] = filepath
+    return cali_json
 
 
 def _cali_func_duration(inclus_dur, filepath):
@@ -34,7 +37,19 @@ def _cali_list_globals(inclus_dur, filepath):
     cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
     return cali_globals 
 
+def _8charKey(fpath):
+    return base64.b64encode(hashlib.md5(fpath.encode('utf8')).digest())[:8].decode('utf8')
 
+def findCaliFiles(recurse, dirpath):
+    if recurse or True:
+        filenames = []
+        for root, subdir, files in os.walk(dirpath):
+            for fname in files:
+                if fname.endswith('.cali'):
+                    filenames.append(os.path.join(root, fname)[len(dirpath) + 1:])
+    else:
+        filenames = [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
+    return filenames;
 
 def is_number(s):
     try:
@@ -45,10 +60,14 @@ def is_number(s):
 
 def hierarchical(args):
     dirpath    = args.directory
+    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
 
-    #load cache or initiate if missing
-    filenames = args.filenames or [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
-    fpaths = [os.path.join(dirpath , fname) for fname in filenames] 
+    #convert hashes to filenames
+    filename_hashes = args.filenames
+    fNameDict = pickle.load(open(cache_path,'rb'))['filenames']
+    filenames = [fNameDict[fHash] for fHash in filename_hashes]
+
+    fpaths = [os.path.join(dirpath , fname) for fname in filenames ] 
 
     import multiprocessing
 
@@ -68,6 +87,11 @@ def hierarchical(args):
         del run['globals']
 
     json.dump(cali_json, sys.stdout)
+
+def defaultKey(filepath):
+    records = _cali_to_json(filepath)['records']
+    key = (list(records[0].keys())[0])
+    return key
 
 
 
@@ -116,33 +140,49 @@ def showChart(args):
     # save settings to user home dir
     pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
 
+def getFiles(subDir):
+    return [os.path.join(subDir, fpath) for fpath in findCaliFiles(True, subDir)]
+
 def summary(args):
-    dirpath    = args.filepath
-    cache_path = os.path.join(dirpath , "spot_cache.pkl")
+    import multiprocessing
+    dirpath    = args.dirpath.rstrip('/')
+
+    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
+    recurse    = args.recurse
 
     #load cache or initiate if missing
-    cache = {}
-    #if os.path.exists(cache_path):
-    #    try: cache = pickle.load(open(cache_path,'rb'))
-    #    except:  pass
-    #else:
-    #    open(cache_path, 'a').close()  # touch file
-    #    os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
-    #    os.chmod(cache_path, 0o660)
+    cache = {'filenames': {}, 'data': {}}
+    if os.path.exists(cache_path):
+        try: 
+            cache = pickle.load(open(cache_path,'rb'))
+        except:  pass
+    else:
+        open(cache_path, 'a').close()  # touch file
+        os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
+        os.chmod(cache_path, 0o660)
 
 
     # check for new cali files, if so add to cache and write to disk
-    #cache_miss_fnames = [fname for fname in os.listdir(dirpath) if not fname in cache and fname.endswith('.cali')]
-    cache_miss_fnames = [fname for fname in os.listdir(dirpath) ]
-    if cache_miss_fnames:
-        fpaths = [os.path.join(dirpath, fname) for fname in cache_miss_fnames if fname.endswith('.cali')]
-        import multiprocessing
-        cache = {**cache, **dict(zip(cache_miss_fnames, [cali_json for cali_json in multiprocessing.Pool(18).map( _cali_to_json, fpaths)]))}
-        #pickle.dump(cache, open(cache_path, 'wb'))
 
-    
+    # non-parallel version of search
+    filenames = findCaliFiles(recurse, dirpath)
+
+    # this parallelizes the filename search by going one level deep and parallelizeing on that level
+    #subpaths = os.listdir(dirpath)
+    #caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
+    #filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
+
+    cache_miss_fnames = [fname for fname in filenames if not fname in cache['filenames'].values()]
+    cache_miss_hashes = [_8charKey(fname) for fname in cache_miss_fnames]
+    if cache_miss_fnames:
+        cache['filenames'] = {**cache['filenames'], **dict(zip(cache_miss_hashes, cache_miss_fnames))}
+        cache['data'].update(dict(zip(cache_miss_hashes, multiprocessing.Pool(18).map( _cali_to_json, [os.path.join(dirpath, fname) for fname in cache_miss_fnames]))))
+
+        pickle.dump(cache, open(cache_path, 'wb'))
+
+    # get adiak types of data 
     metaTypes = dict()
-    for run in cache.values():
+    for run in cache['data'].values():
         metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
     
 
@@ -158,12 +198,12 @@ def summary(args):
 
     # data:  if file is missing data from another file then zero it out
     data = {}
-    for (fname, f) in cache.items():
+    for (fHash, f) in cache['data'].items():
         globs = f['globals']
         for (metaName, metaType) in metaTypes.items():
             if not metaName in globs:
-                globs[metaName] = 0 if metaType in ['int', 'double', "timeval", "date"] else ""
-        data[fname] = globs 
+                globs[metaName] = 0 if metaType in ["int", "double", "timeval", "date", "unsigned int", "unsigned long"] else ""
+        data[fHash] = globs 
 
     # dump summary stdout
     json.dump({'data': data, 'layout': layout}, sys.stdout, indent=4)
@@ -208,9 +248,11 @@ def jupyter(args):
   except: pass
 
   #  - copy template (replacing CALI_FILE_NAME)
-  
+  metric_name = defaultKey(str(cali_path))  
+
   ntbk_path = os.path.join(ntbk_dir, cali_path[cali_path.rfind('/')+1:cali_path.rfind(".")] + '.ipynb')
-  ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path))
+  ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+
   open(ntbk_path, 'w').write(ntbk_template_str)
 
   # return Jupyterhub address
@@ -222,8 +264,11 @@ parser = argparse.ArgumentParser(description="sup")
 subparsers = parser.add_subparsers(dest="sub_name")
 
 summary_sub = subparsers.add_parser("summary")
-summary_sub.add_argument("filepath", help="file and directory paths")
+summary_sub.add_argument("dirpath", help="directory path")
 summary_sub.add_argument("--layout", help="layout json filepath")
+summary_sub.add_argument("--recurse", dest="recurse", action="store_true")
+summary_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
+summary_sub.set_defaults(recurse=True)
 summary_sub.set_defaults(func=summary)
 
 
@@ -240,6 +285,9 @@ durations_sub.set_defaults(func=durations)
 hierarchical_sub = subparsers.add_parser("hierarchical")
 hierarchical_sub.add_argument("directory", help="directory")
 #hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
+hierarchical_sub.add_argument("--recurse", dest="recurse", action="store_true")
+hierarchical_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
+hierarchical_sub.set_defaults(recurse=True)
 hierarchical_sub.add_argument("--filenames", nargs="+", help="individual filenames sep by space")
 hierarchical_sub.set_defaults(func=hierarchical)
 
@@ -254,8 +302,6 @@ jupyter_sub.set_defaults(func=jupyter)
 mpitrace = subparsers.add_parser("mpitrace")
 mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
 mpitrace.set_defaults(func=mpi_trace)
-
-
 
 
 # get input names from command line args  (these are filenames and directory names)

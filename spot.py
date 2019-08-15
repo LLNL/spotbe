@@ -16,8 +16,9 @@ def _sub_call(cmd):
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
 def _cali_to_json(filepath):
-    return _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
-
+    cali_json = _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
+    cali_json['globals']['filepath'] = filepath
+    return cali_json
 
 
 def _cali_func_duration(inclus_dur, filepath):
@@ -60,7 +61,8 @@ def is_number(s):
 def hierarchical(args):
     dirpath    = args.directory
     cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
-    #load cache or initiate if missing
+
+    #convert hashes to filenames
     filename_hashes = args.filenames
     fNameDict = pickle.load(open(cache_path,'rb'))['filenames']
     filenames = [fNameDict[fHash] for fHash in filename_hashes]
@@ -144,7 +146,6 @@ def getFiles(subDir):
 def summary(args):
     import multiprocessing
     dirpath    = args.dirpath.rstrip('/')
-     
 
     cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
     recurse    = args.recurse
@@ -154,7 +155,6 @@ def summary(args):
     if os.path.exists(cache_path):
         try: 
             cache = pickle.load(open(cache_path,'rb'))
-            #print('cache loaded', cache.keys())
         except:  pass
     else:
         open(cache_path, 'a').close()  # touch file
@@ -172,7 +172,6 @@ def summary(args):
     #caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
     #filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
 
-
     cache_miss_fnames = [fname for fname in filenames if not fname in cache['filenames'].values()]
     cache_miss_hashes = [_8charKey(fname) for fname in cache_miss_fnames]
     if cache_miss_fnames:
@@ -181,6 +180,7 @@ def summary(args):
 
         pickle.dump(cache, open(cache_path, 'wb'))
 
+    # get adiak types of data 
     metaTypes = dict()
     for run in cache['data'].values():
         metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
@@ -198,12 +198,12 @@ def summary(args):
 
     # data:  if file is missing data from another file then zero it out
     data = {}
-    for (fname, f) in cache['data'].items():
+    for (fHash, f) in cache['data'].items():
         globs = f['globals']
         for (metaName, metaType) in metaTypes.items():
             if not metaName in globs:
-                globs[metaName] = 0 if metaType in ['int', 'double', "timeval", "date"] else ""
-        data[fname] = globs 
+                globs[metaName] = 0 if metaType in ["int", "double", "timeval", "date", "unsigned int", "unsigned long"] else ""
+        data[fHash] = globs 
 
     # dump summary stdout
     json.dump({'data': data, 'layout': layout}, sys.stdout, indent=4)
