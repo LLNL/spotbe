@@ -6,7 +6,7 @@ CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
 CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
 TEMPLATE_NOTEBOOK = '/usr/gapps/spot/templates/TemplateNotebook.ipynb'
 SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
-SPOT_CACHE_NAME = '.spot_cache.pkl'
+SPOT_CACHE_NAME = '.spot_cache1.pkl'
 #INCLUS_DURATION = 'sum#time.inclusive.duration'
 
 
@@ -80,7 +80,9 @@ def hierarchical(args):
 
         run['meta'] = {}
         for (key, val) in run['globals'].items():
-            adiakType = run['attributes'][key].get("adiak.type", None)  
+            adiakType = None
+            try: adiakType = run['attributes'][key]["adiak.type"]
+            except: pass
             if adiakType:
                 run['meta'][key] = {"value": val, "type": adiakType}
         del run['attributes']
