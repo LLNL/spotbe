@@ -1,226 +1,25 @@
-#! /usr/tce/bin/python3
-import argparse, json, sys, pickle, os, subprocess, getpass, urllib.parse, socket, base64, hashlib
-from functools import partial
+#! /usr/gapps/spot/venv_python/bin/python3
+import argparse, json, sys, os, subprocess, getpass, urllib.parse, socket, time
 
-CALIQUERY       = '/usr/gapps/spot/caliper/bin/cali-query'
-CALIQUERY2      = '/usr/gapps/spot/caliper2/bin/cali-query'
-TEMPLATE_NOTEBOOK = '/usr/gapps/spot/templates/TemplateNotebook.ipynb'
-SPOT_SETTINGS_PATH = os.path.expanduser('~/.spot_settings.pk')
-SPOT_CACHE_NAME = '.spot_cache1.pkl'
-#INCLUS_DURATION = 'sum#time.inclusive.duration'
-
-
+CONFIG = { 'caliquery': '/usr/gapps/spot/caliper-install/bin/cali-query'
+         , 'template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-singlecali.ipynb'
+         , 'multi_template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-manycali.ipynb'
+         }
 
 def _sub_call(cmd): 
     # call a subcommand in a new process and parse json results into object
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
 def _cali_to_json(filepath):
-    cali_json = _sub_call([CALIQUERY2 , '-q', 'format json(object)', filepath])
-    cali_json['globals']['filepath'] = filepath
+
+    cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
+    #cali_json['globals']['filepath'] = filepath
     return cali_json
-
-
-def _cali_func_duration(inclus_dur, filepath):
-    return _sub_call([CALIQUERY , '-q', 'SELECT function,{0} WHERE function FORMAT JSON'.format(inclus_dur), str(filepath) ])
-
-
-def _cali_func_topdown(filepath):
-    return _sub_call([CALIQUERY ,'-q', 'SELECT * FORMAT JSON', str(filepath) ])
-
-
-def _cali_list_globals(inclus_dur, filepath):
-    cali_globals = _sub_call( [CALIQUERY ,'-j', '--list-globals', str(filepath) ])[0]
-
-    # duration needs to be added to cali globals... just get from select call for now
-    # just finds the highest duration in all the functions, assuming that would be the root 
-    cali_globals["Inclusive Duration"] = max(item.get(inclus_dur, 0) for item in _cali_func_duration(inclus_dur, filepath))
-    return cali_globals 
-
-def _8charKey(fpath):
-    return base64.b64encode(hashlib.md5(fpath.encode('utf8')).digest())[:8].decode('utf8')
-
-def findCaliFiles(recurse, dirpath):
-    if recurse or True:
-        filenames = []
-        for root, subdir, files in os.walk(dirpath):
-            for fname in files:
-                if fname.endswith('.cali'):
-                    filenames.append(os.path.join(root, fname)[len(dirpath) + 1:])
-    else:
-        filenames = [fname for fname in os.listdir(dirpath) if fname.endswith('.cali')]
-    return filenames;
-
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-def hierarchical(args):
-    dirpath    = args.directory
-    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
-
-    #convert hashes to filenames
-    filename_hashes = args.filenames
-    fNameDict = pickle.load(open(cache_path,'rb'))['filenames']
-    filenames = [fNameDict[fHash] for fHash in filename_hashes]
-
-    fpaths = [os.path.join(dirpath , fname) for fname in filenames ] 
-
-    import multiprocessing
-
-    cali_json = multiprocessing.Pool(18).map( _cali_to_json, fpaths)
-
-    for run in cali_json:
-        run['data'] = {record.pop('path', None): {key: float(val) for (key, val) in record.items() if is_number(val)} for record in run['records'] if 'path' in record }
-
-        del run['records']
-
-        run['meta'] = {}
-        for (key, val) in run['globals'].items():
-            adiakType = None
-            try: adiakType = run['attributes'][key]["adiak.type"]
-            except: pass
-            if adiakType:
-                run['meta'][key] = {"value": val, "type": adiakType}
-        del run['attributes']
-        del run['globals']
-
-    json.dump(cali_json, sys.stdout)
 
 def defaultKey(filepath):
     records = _cali_to_json(filepath)['records']
     key = (list(records[0].keys())[0])
     return key
-
-
-
-
-# returns a single durations hierarchy given a filepath
-def durations(args):
-    filepath = args.filepath
-    records = _cali_to_json(filepath)['records']
-    durationKey = (list(records[0].keys())[0])
-    output = {record["path"]: record[durationKey] for record in records if record.get("path", None)}
-    json.dump(output, sys.stdout)   
-
-def _getSpotSettings(dirpath):
-    spot_settings = {}
-    try: spot_settings = pickle.load(open(SPOT_SETTINGS_PATH, 'rb'))
-    except: pass
-
-    # get show list
-    show_list = ['walltime', 'user', 'uid', 'launchdate', 'executable', 'executablepath', 'libraries', 'cmdline', 'hosthame', 'clustername', 'systime', 'cputime', 'fom' ]
-    try: show_list = spot_settings[dirpath]['show']
-    except: spot_settings[dirpath] = {'show': show_list}
-    return spot_settings
-
-
-def showChart(args):
-
-    dirpath = args.dirpath
-    chartname = args.chartname
-    show = not args.hide
-    
-    # load spot settings from user home dir
-    spot_settings = _getSpotSettings(dirpath)
-
-    # get show list
-    show_list = spot_settings[dirpath]['show']
-    
-    # toggle show
-    if (show): 
-        if chartname not in show_list:
-            show_list.append(chartname)
-    else: 
-        try:
-            show_list.remove(chartname)
-        except: pass
-
-    # save settings to user home dir
-    pickle.dump(spot_settings, open(SPOT_SETTINGS_PATH, 'wb'))
-
-def getFiles(subDir):
-    return [os.path.join(subDir, fpath) for fpath in findCaliFiles(True, subDir)]
-
-def summary(args):
-    import multiprocessing
-    dirpath    = args.dirpath.rstrip('/')
-
-    cache_path = os.path.join(dirpath , SPOT_CACHE_NAME)
-    recurse    = args.recurse
-
-    #load cache or initiate if missing
-    cache = {'filenames': {}, 'data': {}}
-    if os.path.exists(cache_path):
-        try: 
-            cache = pickle.load(open(cache_path,'rb'))
-        except:  pass
-    else:
-        open(cache_path, 'a').close()  # touch file
-        os.chown(cache_path, -1 , os.stat(dirpath).st_gid)
-        os.chmod(cache_path, 0o660)
-
-
-    # check for new cali files, if so add to cache and write to disk
-
-    # non-parallel version of search
-    filenames = findCaliFiles(recurse, dirpath)
-
-    # this parallelizes the filename search by going one level deep and parallelizeing on that level
-    #subpaths = os.listdir(dirpath)
-    #caliFilesLists = multiprocessing.Pool(18).map(partial(findCaliFiles, recurse), [os.path.join(dirpath, subdir) for subdir in subpaths])
-    #filenames = [os.path.join(subpath, filepath) for (subpath, caliList) in zip(subpaths, caliFilesLists) for filepath in caliList]
-
-    cache_miss_fnames = [fname for fname in filenames if not fname in cache['filenames'].values()]
-    cache_miss_hashes = [_8charKey(fname) for fname in cache_miss_fnames]
-    if cache_miss_fnames:
-        cache['filenames'] = {**cache['filenames'], **dict(zip(cache_miss_hashes, cache_miss_fnames))}
-        cache['data'].update(dict(zip(cache_miss_hashes, multiprocessing.Pool(18).map( _cali_to_json, [os.path.join(dirpath, fname) for fname in cache_miss_fnames]))))
-
-        pickle.dump(cache, open(cache_path, 'wb'))
-
-    # get adiak types of data 
-    metaTypes = dict()
-    for run in cache['data'].values():
-        metaTypes.update({k:v['adiak.type'] for (k,v) in run['attributes'].items() if v.get('adiak.type', None)})
-    
-
-    # layout: if filename provided then return contents,  else generate a generic one
-    layout = json.load(open(args.layout)) if args.layout else _generateLayout(metaTypes)
-    show_list = _getSpotSettings(dirpath)[dirpath]['show']
-    for item in layout['charts']:
-        item['show'] = item['dimension'] in show_list
-        item['type'] = metaTypes[item['dimension']]
-    for item in layout['table']:
-        item['show'] = item['dimension'] in show_list
-        item['type'] = metaTypes[item['dimension']]
-
-    # data:  if file is missing data from another file then zero it out
-    data = {}
-    for (fHash, f) in cache['data'].items():
-        globs = f['globals']
-        for (metaName, metaType) in metaTypes.items():
-            if not metaName in globs:
-                globs[metaName] = 0 if metaType in ["int", "double", "timeval", "date", "unsigned int", "unsigned long"] else ""
-        data[fHash] = globs 
-
-    # dump summary stdout
-    json.dump({'data': data, 'layout': layout}, sys.stdout, indent=4)
-
-def _generateLayout(metaTypes):
-    tableList = [{"dimension": name, "label": name} for (name, type_) in metaTypes.items()]
-    chartList = [{"dimension": name, "title": name, "viz": _getVizType(type_)} for (name, type_) in metaTypes.items()]
-    return {"charts": chartList, "table": tableList}
-
-def _getVizType(valType):
-    if valType in ['int', 'double', "timeval", "date"]:
-       return "BarChart"
-    else:
-       return "PieChart"
-
 
 def topdown(args):
     """call cali on topdown file and return a json object with function keys and objects with duration and topdown info"""
@@ -232,80 +31,284 @@ def topdown(args):
              , sys.stdout
              )
 
-
 def mpi_trace(args):
-  print(open(args.filepath).read())
+    print(open(args.filepath).read())
 
+
+def multi_jupyter(args):
+
+    # create notebook in ~/spot_jupyter dir
+
+    #  - first create directory
+    cali_path = args.cali_filepath
+    cali_keys = args.cali_keys.split(' ')
+    ntbk_dir = os.path.expanduser('~/spot_jupyter')
+
+    try:
+      os.mkdir(ntbk_dir)
+    except: pass
+
+    #  - copy template (replacing CALI_FILE_NAME)
+    #metric_name = defaultKey(str(cali_path))  
+    path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
+    path = "combo"
+
+    line_strs = '"CALI_FILES = [ '
+    loop0 = 0
+    first_metric_name = ""
+
+    for i in cali_keys:
+        full_c_path = cali_path + '/' + i
+        metric_name = defaultKey(str(full_c_path))  
+
+        if loop0 == 0:
+            first_metric_name = metric_name
+
+        dira = cali_path + '/' + i
+        line_strs = line_strs + '\\n { \\"cali_file\\": \\"' + dira + '\\", \\"metric_name\\": \\"' + metric_name + '\\"}, '
+        loop0 = loop0 + 1
+
+
+    line_strs = line_strs + '\\n]\\n"'
+
+    ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
+    ntbk_template_str = open(CONFIG['multi_template_notebook']).read().replace('MUTLI_CALI_FILES', line_strs ).replace('CALI_METRIC_NAME', str(first_metric_name))
+
+    open(ntbk_path, 'w').write(ntbk_template_str)
+    #print( cali_path )
+
+    # return Jupyterhub address
+    rz_or = "rz" if socket.gethostname().startswith('rz') else ""
+    end_path = urllib.parse.quote(os.path.basename(ntbk_path))
+
+    print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 
 def jupyter(args):
 
-  # create notebook in ~/spot_jupyter dir
+    # create notebook in ~/spot_jupyter dir
 
-  #  - first create directory
-  cali_path = args.cali_filepath
-  ntbk_dir = os.path.expanduser('~/spot_jupyter')
-  try:
+    #  - first create directory
+    cali_path = args.cali_filepath
+    ntbk_dir = os.path.expanduser('~/spot_jupyter')
+    try:
       os.mkdir(ntbk_dir)
-  except: pass
+    except: pass
 
-  #  - copy template (replacing CALI_FILE_NAME)
-  metric_name = defaultKey(str(cali_path))  
+    #  - copy template (replacing CALI_FILE_NAME)
+    metric_name = defaultKey(str(cali_path))  
 
-  ntbk_path = os.path.join(ntbk_dir, cali_path[cali_path.rfind('/')+1:cali_path.rfind(".")] + '.ipynb')
-  ntbk_template_str = open(TEMPLATE_NOTEBOOK).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+    path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
+    ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
+    ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
 
-  open(ntbk_path, 'w').write(ntbk_template_str)
+    open(ntbk_path, 'w').write(ntbk_template_str)
 
-  # return Jupyterhub address
-  print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format("rz" if socket.gethostname().startswith('rz') else "", getpass.getuser(), urllib.parse.quote(os.path.basename(ntbk_path))))
+    # return Jupyterhub address
+    rz_or = "rz" if socket.gethostname().startswith('rz') else ""
+    end_path = urllib.parse.quote(os.path.basename(ntbk_path))
 
-
-# argparse
-parser = argparse.ArgumentParser(description="sup")
-subparsers = parser.add_subparsers(dest="sub_name")
-
-summary_sub = subparsers.add_parser("summary")
-summary_sub.add_argument("dirpath", help="directory path")
-summary_sub.add_argument("--layout", help="layout json filepath")
-summary_sub.add_argument("--recurse", dest="recurse", action="store_true")
-summary_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
-summary_sub.set_defaults(recurse=True)
-summary_sub.set_defaults(func=summary)
+    print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 
-showChart_sub = subparsers.add_parser("showChart")
-showChart_sub.add_argument("dirpath", help="directory path of data to toggle chart")
-showChart_sub.add_argument("chartname", help="chartname to toggle")
-showChart_sub.add_argument("--hide", action="store_true", help="set to hide instead of show")
-showChart_sub.set_defaults(func=showChart)
-
-durations_sub = subparsers.add_parser("durations")
-durations_sub.add_argument("filepath", help="file and directory paths")
-durations_sub.set_defaults(func=durations)
-
-hierarchical_sub = subparsers.add_parser("hierarchical")
-hierarchical_sub.add_argument("directory", help="directory")
-#hierarchical_sub.add_argument("durationKey", help="the key for the inclusive duration")
-hierarchical_sub.add_argument("--recurse", dest="recurse", action="store_true")
-hierarchical_sub.add_argument("--no-recurse", dest="recurse", action="store_false")
-hierarchical_sub.set_defaults(recurse=True)
-hierarchical_sub.add_argument("--filenames", nargs="+", help="individual filenames sep by space")
-hierarchical_sub.set_defaults(func=hierarchical)
-
-topdown_sub = subparsers.add_parser("topdown")
-topdown_sub.add_argument("filepath", help="file and directory paths")
-topdown_sub.set_defaults(func=topdown)
-
-jupyter_sub = subparsers.add_parser("jupyter")
-jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-jupyter_sub.set_defaults(func=jupyter)
-
-mpitrace = subparsers.add_parser("mpitrace")
-mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
-mpitrace.set_defaults(func=mpi_trace)
+def _prependDir(dirpath, fnames):
+    return [os.path.join(dirpath, fname) for fname in fnames]
 
 
-# get input names from command line args  (these are filenames and directory names)
-args = parser.parse_args()
-args.func(args)
+def _getAdiakType(run, global_):
+    try: return run['attributes'][global_]["adiak.type"]
+    except: return None
+
+def getData(args):
+    filepath = args.path
+    lastRead = args.lastRead or 0
+
+    output = {}
+
+    # sql database
+    if filepath.endswith(('.yaml', '.sqlite')):
+        if filepath.endswith('.yaml'):
+            import yaml
+            import mysql.connector
+            dbConfig = yaml.load(open(filepath), Loader=yaml.FullLoader)
+            mydb = mysql.connector.connect(**dbConfig)
+            db_placeholder = "%s"
+        else:
+            import sqlite3
+            mydb = sqlite3.connect(filepath)
+            db_placeholder = "?"
+
+        cursor = mydb.cursor()
+
+        # get runs
+        runs = {}
+        runNum = int(lastRead)
+        cursor.execute('SELECT run, globals, records FROM Runs Where run > ' + db_placeholder, (runNum,))
+        for (runNum, _globals, record) in cursor:
+            runData = {}
+            for rec in json.loads(record):
+                funcpath = rec.pop('path', None)
+                if funcpath:
+                    runData[funcpath] = rec
+            runGlobals = json.loads(_globals)
+            runs[runNum] = {'Globals': runGlobals, 'Data': runData}
+
+        # get global meta
+        cursor.execute('SELECT name, datatype FROM Metadata')
+        runGlobalMeta = {name: {'type': datatype} for (name, datatype) in cursor if datatype is not None}
+
+        # output new data
+        output = { 'Runs': runs
+                 # 'RunDataMeta': runNum
+                 , 'RunGlobalMeta': runGlobalMeta
+                 , 'RunSetMeta': {'LastReadPosix': runNum}
+                 }
+
+    # .cali file directory
+    else:
+        lastReadTime = float(lastRead)
+        currReadTime = time.time()
+
+        # get all fnames that end in .cali and changed since last read time
+        fnames = []
+        fpaths = []
+        for (dirpath, dirnames, filenames) in os.walk(filepath):
+            for fname in filenames:
+                fp = os.path.join(dirpath, fname)
+                if (fname.endswith('.cali') and os.stat(fp).st_ctime > lastReadTime):
+                    fnames.append(fp.split(filepath + '/')[1])
+                    fpaths.append(fp)
+
+        import multiprocessing
+
+        cali_json = multiprocessing.Pool(18).map( _cali_to_json, fpaths)
+
+        # process all new files to transfer to front-end
+        runs = {}
+        runDataMeta = {}
+        runGlobalMeta = {}
+
+        for (fname, run) in zip(fnames, cali_json):
+
+            runData = {}
+            runGlobals = {}
+
+            # get runData and runDataMeta
+            for record in run['records']:
+                funcpath = record.pop('path', None)
+                if funcpath:
+                    runData[funcpath] = record
+            for metricName in list(runData.items())[0][1]:
+                runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
+
+            # get runGlobals and runGlobalMeta
+            for (global_, val) in run['globals'].items():
+                adiakType = _getAdiakType(run, global_)
+                if adiakType:
+                    runGlobals[global_] = val
+                    runGlobalMeta[global_] = {'type': adiakType}
+
+            # collect run
+            runs[fname] = { 'Data': runData
+                          , 'Globals': runGlobals 
+                          }
+
+        # output new data
+        output = { 'Runs': runs
+                 , 'RunDataMeta': runDataMeta
+                 , 'RunGlobalMeta': runGlobalMeta
+                 , 'RunSetMeta': {'LastReadPosix': currReadTime}
+                 }
+
+    json.dump(output, sys.stdout, indent=4)
+
+
+def getRun(runId, db=None):
+    # sql database
+    if db:
+        if db.endswith('.yaml'):
+            import yaml
+            import mysql.connector
+            dbConfig = yaml.load(open(db), Loader=yaml.FullLoader)
+            mydb = mysql.connector.connect(**dbConfig)
+            db_placeholder = "%s"
+        else:
+            import sqlite3
+            mydb = sqlite3.connect(db)
+            db_placeholder = "?"
+
+        cursor = mydb.cursor()
+
+        # get run
+        cursor.execute('SELECT globals, records FROM Runs Where run = ' + db_placeholder, (runId,))
+        rec = next(cursor)
+        runGlobals = json.loads(rec[0])
+        runData = json.loads(rec[1])
+        output = {'records': runData, 'globals': runGlobals}
+
+    # .cali file directory
+    else:
+        output = _cali_to_json(runId)
+        del output['attributes']
+    return output
+
+
+def getHatchetLiteral(runId, db=None):
+    funcPathDict = {line.pop('path'): line for line in getRun(runId, db)['records'] if line.get('path', None)}
+
+    def buildTree(nodeName):
+        node = {}
+        node['name'] = nodeName.split('/')[-1]
+        node['metrics'] = funcPathDict[nodeName]
+        childrenPaths = [childPath for childPath in funcPathDict.keys() 
+                         if len(childPath.split('/')) == len(nodeName.split('/')) + 1 and childPath.startswith(nodeName)]
+        if childrenPaths:
+            node['children'] = [buildTree(childPath) for childPath in childrenPaths]
+        return node
+
+    return [buildTree(min(funcPathDict.keys()))]
+
+
+if __name__ == "__main__":  
+
+    # argparse
+    parser = argparse.ArgumentParser(description="utility to access data from .cali files/directory or database")
+    parser.add_argument("--config", help="filepath to yaml config file")
+    subparsers = parser.add_subparsers(dest="sub_name")
+
+    topdown_sub = subparsers.add_parser("topdown")
+    topdown_sub.add_argument("filepath", help="file and directory paths")
+    topdown_sub.set_defaults(func=topdown)
+
+    jupyter_sub = subparsers.add_parser("jupyter")
+    jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    jupyter_sub.set_defaults(func=jupyter)
+
+    multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
+    multi_jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    multi_jupyter_sub.add_argument("cali_keys", help="cali filenames used to construct the multi jupyter")
+    multi_jupyter_sub.set_defaults(func=multi_jupyter)
+
+    mpitrace = subparsers.add_parser("mpitrace")
+    mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
+    mpitrace.set_defaults(func=mpi_trace)
+
+    getData_sub = subparsers.add_parser("getData")
+    getData_sub.add_argument("path",  help="path to directory of files, or yaml config file")
+    getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
+    getData_sub.set_defaults(func=getData)
+
+    getRun_sub = subparsers.add_parser("getRun")
+    getRun_sub.add_argument("runId",  help="filepath or db run number")
+    getRun_sub.add_argument("--db",  help="yaml config file, or sqlite DB")
+    getRun_sub.set_defaults(func=lambda args: json.dump(getRun(args.runId, args.db), sys.stdout, indent=4))
+
+    args = parser.parse_args()
+    if args.config:
+        import yaml
+        CONFIG.update(yaml.load(open(args.config), Loader=yaml.FullLoader))
+    args.func(args)
+
+    
+    
+    
