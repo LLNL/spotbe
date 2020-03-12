@@ -2,8 +2,8 @@
 import argparse, json, sys, os, subprocess, getpass, urllib.parse, socket, time
 
 CONFIG = { 'caliquery': '/usr/gapps/spot/caliper-install/bin/cali-query'
-         , 'template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-singlecali.ipynb'
-         , 'multi_template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-manycali.ipynb'
+         , 'template_notebook': '/usr/gapps/spot/dev/templates/TemplateNotebook_hatchet-v1.0.0-singlecali.ipynb'
+         , 'multi_template_notebook': '/usr/gapps/spot/dev/templates/TemplateNotebook_hatchet-v1.0.0-manycali.ipynb'
          }
 
 def _sub_call(cmd): 
