@@ -1,10 +1,28 @@
 #! /usr/gapps/spot/venv_python/bin/python3
 import argparse, json, sys, os, subprocess, getpass, urllib.parse, socket, time
+from datetime import datetime
 
+def get_deploy_dir():
+    is_live = 1
+
+    if '/dev/' in __file__:
+        is_live = 0
+
+    deploy_dir = 'live/' if is_live == 1 else 'dev/'
+    return '/usr/gapps/spot/' + deploy_dir
+
+
+#print( get_deploy_dir() )
+
+dd = get_deploy_dir()
 CONFIG = { 'caliquery': '/usr/gapps/spot/caliper-install/bin/cali-query'
-         , 'template_notebook': '/usr/gapps/spot/dev/templates/TemplateNotebook_hatchet-v1.0.0-singlecali.ipynb'
-         , 'multi_template_notebook': '/usr/gapps/spot/dev/templates/TemplateNotebook_hatchet-v1.0.0-manycali.ipynb'
+         , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
+         , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
          }
+
+#print(CONFIG['template_notebook'])
+#print(CONFIG['multi_template_notebook'])
+
 
 def _sub_call(cmd): 
     # call a subcommand in a new process and parse json results into object
@@ -16,10 +34,22 @@ def _cali_to_json(filepath):
     #cali_json['globals']['filepath'] = filepath
     return cali_json
 
+
+
 def defaultKey(filepath):
+
     records = _cali_to_json(filepath)['records']
-    key = (list(records[0].keys())[0])
+    
+    # sometimes the records[0] says 
+    if 0 == len(records):
+      return ""
+
+    record_keys = records[0].keys()
+    my_list = list(record_keys)
+    key = my_list[0]
+
     return key
+
 
 def topdown(args):
     """call cali on topdown file and return a json object with function keys and objects with duration and topdown info"""
@@ -119,107 +149,157 @@ def _getAdiakType(run, global_):
     try: return run['attributes'][global_]["adiak.type"]
     except: return None
 
+def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
+    if dbFilepath.endswith('.yaml'):
+        import yaml
+        import mysql.connector
+        dbConfig = yaml.load(open(dbFilepath), Loader=yaml.FullLoader)
+        mydb = mysql.connector.connect(**dbConfig)
+        db_placeholder = "%s"
+    else:
+        import sqlite3
+        mydb = sqlite3.connect(dbFilepath)
+        db_placeholder = "?"
+
+    cursor = mydb.cursor()
+
+    # get runs
+    runs = {}
+    runNum = int(lastRead)
+    cursor.execute('SELECT run, globals, records FROM Runs Where run > ' + db_placeholder, (runNum,))
+    for (runNum, _globals, record) in cursor:
+        runData = {}
+        for rec in json.loads(record):
+            funcpath = rec.pop('path', None)
+            if funcpath:
+                runData[funcpath] = rec
+        runGlobals = json.loads(_globals)
+        runs[runNum] = {'Globals': runGlobals, 'Data': runData}
+
+    # get global meta
+    cursor.execute('SELECT name, datatype FROM Metadata')
+    runGlobalMeta = {name: {'type': datatype} for (name, datatype) in cursor if datatype is not None}
+
+    return { 'Runs': runs
+           # 'RunDataMeta': runNum
+           , 'RunGlobalMeta': runGlobalMeta
+           , 'RunSetMeta': {'LastReadPosix': runNum}
+           }
+
+def _getAllCaliRuns(filepath, subpaths):
+    import multiprocessing
+
+    cali_json = multiprocessing.Pool(18).map( _cali_to_json, _prependDir(filepath, subpaths))
+
+    # process all new files to transfer to front-end
+    runs = {}
+    runDataMeta = {}
+    runGlobalMeta = {}
+
+    for (subpath, run) in zip(subpaths, cali_json):
+
+        runData = {}
+        runGlobals = {}
+
+        # get runData and runDataMeta
+        for record in run['records']:
+            funcpath = record.pop('path', None)
+            if funcpath:
+                runData[funcpath] = record
+        for metricName in list(runData.items())[0][1]:
+            runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
+
+        # get runGlobals and runGlobalMeta
+        for (global_, val) in run['globals'].items():
+            adiakType = _getAdiakType(run, global_)
+            if adiakType:
+                runGlobals[global_] = val
+                runGlobalMeta[global_] = {'type': adiakType}
+
+        # collect run
+        runs[subpath] = { 'Data': runData
+                      , 'Globals': runGlobals 
+                      }
+
+    # output new data
+    return { 'Runs': runs
+           , 'RunDataMeta': runDataMeta
+           , 'RunGlobalMeta': runGlobalMeta
+           }
+
+def _getAllJsonRuns(filepath, subpaths):
+    output = {}
+    runs = {}
+    for subpath in subpaths:
+        try:
+            data = json.load(open(os.path.join(filepath, subpath)))
+            commits = data.pop('commits')
+            title = data.pop('title')
+            yAxis = data.pop('yAxis')
+            show_exclusive = data.pop('show_exclusive')
+            series = data.pop('series')
+            dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
+            runSetName = subpath[0:subpath.find('.json')]
+
+            for i in range(len(dates)):
+                runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
+                                                               , 'commit': commits[i]
+                                                               , 'title': title
+                                                               }  
+                                                  , 'Data': {} 
+                                                  }
+
+
+            for funcpath, values in data.items():
+                for value in values:
+                    runs[runSetName + '-' + str(value[0])]['Data']['main'] = {yAxis: 0}
+                    runs[runSetName + '-' + str(value[0])]['Data']['main/'+funcpath] = {yAxis: value[1]}
+        except: pass
+
+
+
+
+    return { 'Runs': runs
+           , 'RunDataMeta': {yAxis: {'type': 'double'}}
+           , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
+                              , 'commit': {'type': 'string'}
+                              }
+           }
+
+
 def getData(args):
     filepath = args.path
     lastRead = args.lastRead or 0
+    currReadTime = time.time()
 
     output = {}
 
     # sql database
     if filepath.endswith(('.yaml', '.sqlite')):
-        if filepath.endswith('.yaml'):
-            import yaml
-            import mysql.connector
-            dbConfig = yaml.load(open(filepath), Loader=yaml.FullLoader)
-            mydb = mysql.connector.connect(**dbConfig)
-            db_placeholder = "%s"
-        else:
-            import sqlite3
-            mydb = sqlite3.connect(filepath)
-            db_placeholder = "?"
+        output = _getAllDatabaseRuns(filepath, lastRead)
 
-        cursor = mydb.cursor()
-
-        # get runs
-        runs = {}
-        runNum = int(lastRead)
-        cursor.execute('SELECT run, globals, records FROM Runs Where run > ' + db_placeholder, (runNum,))
-        for (runNum, _globals, record) in cursor:
-            runData = {}
-            for rec in json.loads(record):
-                funcpath = rec.pop('path', None)
-                if funcpath:
-                    runData[funcpath] = rec
-            runGlobals = json.loads(_globals)
-            runs[runNum] = {'Globals': runGlobals, 'Data': runData}
-
-        # get global meta
-        cursor.execute('SELECT name, datatype FROM Metadata')
-        runGlobalMeta = {name: {'type': datatype} for (name, datatype) in cursor if datatype is not None}
-
-        # output new data
-        output = { 'Runs': runs
-                 # 'RunDataMeta': runNum
-                 , 'RunGlobalMeta': runGlobalMeta
-                 , 'RunSetMeta': {'LastReadPosix': runNum}
-                 }
-
-    # .cali file directory
+    # file directory
     else:
         lastReadTime = float(lastRead)
-        currReadTime = time.time()
 
-        # get all fnames that end in .cali and changed since last read time
-        fnames = []
-        fpaths = []
+        # get subpaths of data files that were added since last read time
+        caliSubpaths = []
+        jsonSubpaths = []
         for (dirpath, dirnames, filenames) in os.walk(filepath):
             for fname in filenames:
                 fp = os.path.join(dirpath, fname)
-                if (fname.endswith('.cali') and os.stat(fp).st_ctime > lastReadTime):
-                    fnames.append(fp.split(filepath + '/')[1])
-                    fpaths.append(fp)
+                if os.stat(fp).st_ctime > lastReadTime and fname.endswith('.cali'):
+                        caliSubpaths.append(fp.split(filepath + '/')[1])
+                if fname.endswith('.json'):
+                        jsonSubpaths.append(fp.split(filepath + '/')[1])
 
-        import multiprocessing
+        if jsonSubpaths: 
+            output = _getAllJsonRuns(filepath, jsonSubpaths)
+        if caliSubpaths: 
+            output = _getAllCaliRuns(filepath, caliSubpaths)
 
-        cali_json = multiprocessing.Pool(18).map( _cali_to_json, fpaths)
-
-        # process all new files to transfer to front-end
-        runs = {}
-        runDataMeta = {}
-        runGlobalMeta = {}
-
-        for (fname, run) in zip(fnames, cali_json):
-
-            runData = {}
-            runGlobals = {}
-
-            # get runData and runDataMeta
-            for record in run['records']:
-                funcpath = record.pop('path', None)
-                if funcpath:
-                    runData[funcpath] = record
-            for metricName in list(runData.items())[0][1]:
-                runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
-
-            # get runGlobals and runGlobalMeta
-            for (global_, val) in run['globals'].items():
-                adiakType = _getAdiakType(run, global_)
-                if adiakType:
-                    runGlobals[global_] = val
-                    runGlobalMeta[global_] = {'type': adiakType}
-
-            # collect run
-            runs[fname] = { 'Data': runData
-                          , 'Globals': runGlobals 
-                          }
-
-        # output new data
-        output = { 'Runs': runs
-                 , 'RunDataMeta': runDataMeta
-                 , 'RunGlobalMeta': runGlobalMeta
-                 , 'RunSetMeta': {'LastReadPosix': currReadTime}
-                 }
-
+    output['RunSetMeta'] = {}
+    output['RunSetMeta']['LastReadPosix'] = currReadTime
     json.dump(output, sys.stdout, indent=4)
 
 
@@ -311,4 +391,4 @@ if __name__ == "__main__":
 
     
     
-    
+   
