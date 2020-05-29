@@ -1,5 +1,5 @@
 #! /usr/gapps/spot/venv_python/bin/python3
-import argparse, json, sys, os, subprocess, getpass, urllib.parse, socket, time
+import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 from datetime import datetime
 
 def get_deploy_dir():
@@ -12,10 +12,12 @@ def get_deploy_dir():
     return '/usr/gapps/spot/' + deploy_dir
 
 
-#print( get_deploy_dir() )
+# print( get_deploy_dir() )
 
 dd = get_deploy_dir()
-CONFIG = { 'caliquery': '/usr/gapps/spot/caliper-install/bin/cali-query'
+architecture = platform.uname().machine
+
+CONFIG = { 'caliquery': dd + 'caliper/' + architecture + '/bin/cali-query'
          , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
          , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
          }
