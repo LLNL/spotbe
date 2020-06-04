@@ -1,11 +1,31 @@
 #! /usr/gapps/spot/venv_python/bin/python3
-import argparse, json, sys, os, subprocess, getpass, urllib.parse, socket, time
+import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 from datetime import datetime
 
-CONFIG = { 'caliquery': '/usr/gapps/spot/caliper-install/bin/cali-query'
-         , 'template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-singlecali.ipynb'
-         , 'multi_template_notebook': '/usr/gapps/spot/templates/TemplateNotebook_hatchet-v1.0.0-manycali.ipynb'
+def get_deploy_dir():
+    is_live = 1
+
+    if '/dev/' in __file__:
+        is_live = 0
+
+    deploy_dir = 'live/' if is_live == 1 else 'dev/'
+    return '/usr/gapps/spot/' + deploy_dir
+
+
+# print( get_deploy_dir() )
+
+dd = get_deploy_dir()
+architecture = platform.uname().machine
+cali_query_path = dd + 'caliper/' + architecture + '/bin'
+
+CONFIG = { 'caliquery': cali_query_path + '/cali-query'
+         , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
+         , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
          }
+
+#print(CONFIG['template_notebook'])
+#print(CONFIG['multi_template_notebook'])
+
 
 def _sub_call(cmd): 
     # call a subcommand in a new process and parse json results into object
@@ -14,51 +34,39 @@ def _sub_call(cmd):
 def _cali_to_json(filepath):
 
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
+    #cali_json['globals']['filepath'] = filepath
     return cali_json
 
+
+
 def defaultKey(filepath):
+
     records = _cali_to_json(filepath)['records']
-    key = (list(records[0].keys())[0])
+    
+    # sometimes the records[0] says 
+    if 0 == len(records):
+      return ""
+
+    record_keys = records[0].keys()
+    my_list = list(record_keys)
+    key = my_list[0]
+
     return key
 
-def jupyter(args):
 
-    # create notebook in ~/spot_jupyter dir
+def topdown(args):
+    """call cali on topdown file and return a json object with function keys and objects with duration and topdown info"""
+    filepath = args.filepath
+    json.dump( {item["function"]:{ "duration": item["count"] 
+                                 , "topdown": {k[15:]:v for (k,v) in item.items() if k.startswith("libpfm.topdown#")} 
+                                 } 
+                    for item in _cali_func_topdown(filepath) if "function" in item }
+             , sys.stdout
+             )
 
-    #  - first create directory
-    cali_path = args.cali_filepath
-    isContainer = args.container
+def mpi_trace(args):
+    print(open(args.filepath).read())
 
-    if isContainer:
-        metric_name = defaultKey('/data/' + str(cali_path))
-        (ntbk_path, ntbk_name) = os.path.split(os.path.join('/notebooks', cali_path[:cali_path.rfind(".") ] + '.ipynb'))
-
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', '/data/' + str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-
-        os.makedirs(ntbk_path,exist_ok=True)
-
-        open(os.path.join(ntbk_path, ntbk_name), 'w').write(ntbk_template_str)
-        print('succesfully made notebook')
-
-    else: 
-        ntbk_dir = os.path.expanduser('~/spot_jupyter')
-        try:
-            os.mkdir(ntbk_dir)
-        except: pass
-
-        metric_name = defaultKey(str(cali_path))  
-
-        ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
-        ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-
-        open(ntbk_path, 'w').write(ntbk_template_str)
-
-        # return Jupyterhub address
-        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
-        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
-
-        print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 def multi_jupyter(args):
 
@@ -98,8 +106,7 @@ def multi_jupyter(args):
 
     ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
     ntbk_template_str = open(CONFIG['multi_template_notebook']).read().replace('MUTLI_CALI_FILES', line_strs ).replace('CALI_METRIC_NAME', str(first_metric_name))
-    print('ntbok_path', ntbk_path)
-    print('ntbok_template_str', ntbk_template_str)
+    ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_path)
 
     open(ntbk_path, 'w').write(ntbk_template_str)
     #print( cali_path )
@@ -111,8 +118,32 @@ def multi_jupyter(args):
     print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 
+def jupyter(args):
 
-        
+    # create notebook in ~/spot_jupyter dir
+
+    #  - first create directory
+    cali_path = args.cali_filepath
+    ntbk_dir = os.path.expanduser('~/spot_jupyter')
+    try:
+      os.mkdir(ntbk_dir)
+    except: pass
+
+    #  - copy template (replacing CALI_FILE_NAME)
+    metric_name = defaultKey(str(cali_path))  
+
+    path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
+    ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
+    ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+    ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_path)
+
+    open(ntbk_path, 'w').write(ntbk_template_str)
+
+    # return Jupyterhub address
+    rz_or = "rz" if socket.gethostname().startswith('rz') else ""
+    end_path = urllib.parse.quote(os.path.basename(ntbk_path))
+
+    print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 
 def _prependDir(dirpath, fnames):
@@ -205,28 +236,30 @@ def _getAllJsonRuns(filepath, subpaths):
     output = {}
     runs = {}
     for subpath in subpaths:
-        data = json.load(open(os.path.join(filepath, subpath)))
-        commits = data.pop('commits')
-        title = data.pop('title')
-        yAxis = data.pop('yAxis')
-        show_exclusive = data.pop('show_exclusive')
-        series = data.pop('series')
-        dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
-        runSetName = subpath[0:subpath.find('.json')]
+        try:
+            data = json.load(open(os.path.join(filepath, subpath)))
+            commits = data.pop('commits')
+            title = data.pop('title')
+            yAxis = data.pop('yAxis')
+            show_exclusive = data.pop('show_exclusive')
+            series = data.pop('series')
+            dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
+            runSetName = subpath[0:subpath.find('.json')]
 
-        for i in range(len(dates)):
-            runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
-                                                           , 'commit': commits[i]
-                                                           , 'title': title
-                                                           }  
-                                              , 'Data': {} 
-                                              }
+            for i in range(len(dates)):
+                runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
+                                                               , 'commit': commits[i]
+                                                               , 'title': title
+                                                               }  
+                                                  , 'Data': {} 
+                                                  }
 
 
-        for funcpath, values in data.items():
-            for value in values:
-                runs[runSetName + '-' + str(value[0])]['Data']['main'] = {yAxis: 0}
-                runs[runSetName + '-' + str(value[0])]['Data']['main/'+funcpath] = {yAxis: value[1]}
+            for funcpath, values in data.items():
+                for value in values:
+                    runs[runSetName + '-' + str(value[0])]['Data']['main'] = {yAxis: 0}
+                    runs[runSetName + '-' + str(value[0])]['Data']['main/'+funcpath] = {yAxis: value[1]}
+        except: pass
 
 
 
@@ -240,49 +273,38 @@ def _getAllJsonRuns(filepath, subpaths):
 
 
 def getData(args):
-    dataSetKey = args.dataSetKey
+    filepath = args.path
     lastRead = args.lastRead or 0
-    cachedRunCtimes = json.loads(args.cachedRunCtimes)
-        # {subpath: cachedCtime}
+    currReadTime = time.time()
 
     output = {}
 
     # sql database
-    if dataSetKey.endswith(('.yaml', '.sqlite')):
-        output = _getAllDatabaseRuns(dataSetKey, lastRead)
+    if filepath.endswith(('.yaml', '.sqlite')):
+        output = _getAllDatabaseRuns(filepath, lastRead)
 
     # file directory
     else:
         lastReadTime = float(lastRead)
 
         # get subpaths of data files that were added since last read time
-        newRuns = []
+        caliSubpaths = []
         jsonSubpaths = []
-        runCtimes = {}
-        for (dirpath, dirnames, filenames) in os.walk(dataSetKey):
+        for (dirpath, dirnames, filenames) in os.walk(filepath):
             for fname in filenames:
                 fp = os.path.join(dirpath, fname)
-                newCtime = os.stat(fp).st_ctime
-                runKey = fp.split(dataSetKey + '/')[1]
-
-                if fname.endswith('.cali'): 
-                    runCtimes[runKey] = newCtime
-                    if newCtime > cachedRunCtimes.get(runKey, 0):
-                        newRuns.append(runKey)
+                if os.stat(fp).st_ctime > lastReadTime and fname.endswith('.cali'):
+                        caliSubpaths.append(fp.split(filepath + '/')[1])
                 if fname.endswith('.json'):
-                        jsonSubpaths.append(runKey)
-
-        deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
-
+                        jsonSubpaths.append(fp.split(filepath + '/')[1])
 
         if jsonSubpaths: 
-            output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
-        if newRuns: 
-            output = _getAllCaliRuns(dataSetKey, newRuns)
+            output = _getAllJsonRuns(filepath, jsonSubpaths)
+        if caliSubpaths: 
+            output = _getAllCaliRuns(filepath, caliSubpaths)
 
-        output['deletedRuns'] = list(deletedRuns)
-        output['runCtimes'] = runCtimes
-
+    output['RunSetMeta'] = {}
+    output['RunSetMeta']['LastReadPosix'] = currReadTime
     json.dump(output, sys.stdout, indent=4)
 
 
@@ -339,10 +361,12 @@ if __name__ == "__main__":
     parser.add_argument("--config", help="filepath to yaml config file")
     subparsers = parser.add_subparsers(dest="sub_name")
 
+    topdown_sub = subparsers.add_parser("topdown")
+    topdown_sub.add_argument("filepath", help="file and directory paths")
+    topdown_sub.set_defaults(func=topdown)
 
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-    jupyter_sub.add_argument("--container", action="store_true", help="use if running container version of spot")
     jupyter_sub.set_defaults(func=jupyter)
 
     multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
@@ -350,9 +374,12 @@ if __name__ == "__main__":
     multi_jupyter_sub.add_argument("cali_keys", help="cali filenames used to construct the multi jupyter")
     multi_jupyter_sub.set_defaults(func=multi_jupyter)
 
+    mpitrace = subparsers.add_parser("mpitrace")
+    mpitrace.add_argument("filepath", nargs="?", help="filepath to mpidata", default="/usr/gapps/wf/web/spot/data/test_mpi.json")
+    mpitrace.set_defaults(func=mpi_trace)
+
     getData_sub = subparsers.add_parser("getData")
-    getData_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
-    getData_sub.add_argument("cachedRunCtimes",  help="list of subpaths with timestamps")
+    getData_sub.add_argument("path",  help="path to directory of files, or yaml config file")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
 
