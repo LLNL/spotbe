@@ -18,6 +18,7 @@ def get_deploy_dir():
 dd = get_deploy_dir()
 architecture = platform.uname().machine
 cali_query_path = dd + 'caliper/' + architecture + '/bin'
+cali_query_replace = dd + 'caliper/\\" + machine + \\"/bin'
 
 CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
@@ -82,7 +83,7 @@ def multi_jupyter(args):
 
     ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
     ntbk_template_str = open(CONFIG['multi_template_notebook']).read().replace('MUTLI_CALI_FILES', line_strs ).replace('CALI_METRIC_NAME', str(first_metric_name))
-    ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_path)
+    ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
 
     open(ntbk_path, 'w').write(ntbk_template_str)
 
@@ -122,7 +123,7 @@ def jupyter(args):
         ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
         ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_path)
+        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
 
         open(ntbk_path, 'w').write(ntbk_template_str)
 
