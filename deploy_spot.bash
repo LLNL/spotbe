@@ -36,4 +36,6 @@ cp -r $DEV"caliper/*" $CALIPER
 
 
 
+cd $DIR
+./setperm.sh
 
