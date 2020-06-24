@@ -284,7 +284,19 @@ def getData(args):
             for fname in filenames:
                 fp = os.path.join(dirpath, fname)
                 newCtime = os.stat(fp).st_ctime
-                runKey = fp.split(dataSetKey + '/')[1]
+                dataSetKey = dataSetKey.rstrip('/')
+
+                splitKey = dataSetKey + '/'
+                runSpli = fp.split( splitKey )
+                len_el = len(runSpli)
+
+                #print("len = " + str(len_el))
+ 
+                if 1 < len_el:
+                	runKey = runSpli[1]
+                else:
+                        print( "I cannot split this filename: " + fp + " with splitKey = " + splitKey )
+                        exit()
 
                 if fname.endswith('.cali'): 
                     runCtimes[runKey] = newCtime
