@@ -52,6 +52,8 @@ def multi_jupyter(args):
     #  - first create directory
     cali_path = args.cali_filepath
     cali_keys = args.cali_keys.split(' ')
+    try: cali_keys = json.loads(args.cali_keys)
+    except: pass
     ntbk_dir = os.path.expanduser('~/spot_jupyter')
 
     try:
