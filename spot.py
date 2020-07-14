@@ -255,7 +255,7 @@ def _getAllJsonRuns(filepath, subpaths):
 
 
     return { 'Runs': runs
-           , 'RunDataMeta': {yAxis: {'type': 'double'}}
+           , 'RunDataMeta': {'yAxis': {'type': 'double'}}
            , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
                               , 'commit': {'type': 'string'}
                               }
