@@ -26,7 +26,7 @@ CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          }
 
 
-def _sub_call(cmd): 
+def _sub_call(cmd):
     # call a subcommand in a new process and parse json results into object
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
@@ -61,7 +61,7 @@ def multi_jupyter(args):
     except: pass
 
     #  - copy template (replacing CALI_FILE_NAME)
-    #metric_name = defaultKey(str(cali_path))  
+    #metric_name = defaultKey(str(cali_path))
     path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
     path = "combo"
 
@@ -71,7 +71,7 @@ def multi_jupyter(args):
 
     for i in cali_keys:
         full_c_path = cali_path + '/' + i
-        metric_name = defaultKey(str(full_c_path))  
+        metric_name = defaultKey(str(full_c_path))
 
         if loop0 == 0:
             first_metric_name = metric_name
@@ -93,7 +93,10 @@ def multi_jupyter(args):
     rz_or = "rz" if socket.gethostname().startswith('rz') else ""
     end_path = urllib.parse.quote(os.path.basename(ntbk_path))
 
-    print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
+    if args.ci_testing:
+        print(ntbk_path)
+    else:
+        print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 def jupyter(args):
 
@@ -114,13 +117,13 @@ def jupyter(args):
         open(os.path.join(ntbk_path, ntbk_name), 'w').write(ntbk_template_str)
         print('succesfully made notebook')
 
-    else: 
+    else:
         ntbk_dir = os.path.expanduser('~/spot_jupyter')
         try:
             os.mkdir(ntbk_dir)
         except: pass
 
-        metric_name = defaultKey(str(cali_path))  
+        metric_name = defaultKey(str(cali_path))
 
         ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
@@ -133,7 +136,10 @@ def jupyter(args):
         rz_or = "rz" if socket.gethostname().startswith('rz') else ""
         end_path = urllib.parse.quote(os.path.basename(ntbk_path))
 
-        print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
+        if args.ci_testing:
+            print(ntbk_path)
+        else:
+            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 
 def _prependDir(dirpath, fnames):
@@ -213,7 +219,7 @@ def _getAllCaliRuns(filepath, subpaths):
 
         # collect run
         runs[subpath] = { 'Data': runData
-                      , 'Globals': runGlobals 
+                      , 'Globals': runGlobals
                       }
 
     # output new data
@@ -240,8 +246,8 @@ def _getAllJsonRuns(filepath, subpaths):
                 runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
                                                             , 'commit': commits[i]
                                                             , 'title': title
-                                                            }  
-                                                , 'Data': {} 
+                                                            }
+                                                , 'Data': {}
                                                 }
 
 
@@ -293,14 +299,14 @@ def getData(args):
                 len_el = len(runSpli)
 
                 #print("len = " + str(len_el))
- 
+
                 if 1 < len_el:
                 	runKey = runSpli[1]
                 else:
                         print( "I cannot split this filename: " + fp + " with splitKey = " + splitKey )
                         exit()
 
-                if fname.endswith('.cali'): 
+                if fname.endswith('.cali'):
                     runCtimes[runKey] = newCtime
                     if newCtime > cachedRunCtimes.get(runKey, 0):
                         newRuns.append(runKey)
@@ -310,9 +316,9 @@ def getData(args):
         deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
 
 
-        if jsonSubpaths: 
+        if jsonSubpaths:
             output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
-        if newRuns: 
+        if newRuns:
             output = _getAllCaliRuns(dataSetKey, newRuns)
 
         output['deletedRuns'] = list(deletedRuns)
@@ -358,7 +364,7 @@ def getHatchetLiteral(runId, db=None):
         node = {}
         node['name'] = nodeName.split('/')[-1]
         node['metrics'] = funcPathDict[nodeName]
-        childrenPaths = [childPath for childPath in funcPathDict.keys() 
+        childrenPaths = [childPath for childPath in funcPathDict.keys()
                          if len(childPath.split('/')) == len(nodeName.split('/')) + 1 and childPath.startswith(nodeName)]
         if childrenPaths:
             node['children'] = [buildTree(childPath) for childPath in childrenPaths]
@@ -367,11 +373,12 @@ def getHatchetLiteral(runId, db=None):
     return [buildTree(min(funcPathDict.keys()))]
 
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
 
     # argparse
     parser = argparse.ArgumentParser(description="utility to access data from .cali files/directory or database")
     parser.add_argument("--config", help="filepath to yaml config file")
+    parser.add_argument("--ci_testing", help="get notebook path for CI tests", action="store_true")
     subparsers = parser.add_subparsers(dest="sub_name")
 
 
