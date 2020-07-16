@@ -9,18 +9,19 @@ user_in_spotdev()
     fi
 }
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <cali-file>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <dev-or-live> <cali-file>"
     exit 1
 fi
 
-CALI_FILE=$1
+DEPLOY_DIR=$1
+CALI_FILE=$2
 
 # run spot.py to update variables in template notebook
-JUPYTER_NB=$(./spot.py --ci_testing jupyter ${CALI_FILE})
+JUPYTER_NB=$(/usr/gapps/spot/${DEPLOY_DIR}/spot.py --ci_testing jupyter ${CALI_FILE})
 OUTFILE=$(echo ${JUPYTER_NB} | rev | cut -d "." -f 2- | rev).nbconvert.ipynb
 
-echo -e "CI Testing for Jupyter:"
+echo -e "CI Testing for Jupyter in Spot ${DEPLOY_DIR}:"
 echo -e "    Running As: ${USER}"
 echo -e "    Member of spotdev?: $(user_in_spotdev ${USER})"
 echo -e "    Input Jupyter Notebook:"

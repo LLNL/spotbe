@@ -9,19 +9,21 @@ user_in_spotdev()
     fi
 }
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <path-to-cali-dir>"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <dev-or-live> <path-to-cali-dir>"
     exit 1
 fi
 
-CALI_DIR=$1
+DEPLOY_DIR=$1
+CALI_DIR=$2
+
 CALI_FILES=$(echo `ls ${CALI_DIR}`)
 
 ## run spot.py to update variables in multi template notebook
-MULTI_JUPYTER_NB=$(./spot.py --ci_testing multi_jupyter ${CALI_DIR} "${CALI_FILES}")
+MULTI_JUPYTER_NB=$(/usr/gapps/spot/${DEPLOY_DIR}/spot.py --ci_testing multi_jupyter ${CALI_DIR} "${CALI_FILES}")
 OUTFILE=$(echo ${MULTI_JUPYTER_NB} | rev | cut -d "." -f 2- | rev).nbconvert.ipynb
 
-echo -e "CI Testing for Multi Jupyter:"
+echo -e "CI Testing for Multi Jupyter in Spot ${DEPLOY_DIR}:"
 echo -e "    Running As: ${USER}"
 echo -e "    Member of spotdev?: $(user_in_spotdev ${USER})"
 echo -e "    Input Multi Jupyter Notebook:"
