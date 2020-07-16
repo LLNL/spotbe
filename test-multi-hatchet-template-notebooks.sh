@@ -48,8 +48,10 @@ err=$?
 echo -e ""
 if [ ${err} -eq 0 ]; then
     echo -e "SUCCESS $0"
+    exit 0
 else
     echo -e "FAILURE $0"
+    exit 1
 fi
 
 #
