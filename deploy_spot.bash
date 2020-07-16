@@ -16,7 +16,7 @@ CALI_DIR=/usr/gapps/spot/datasets/lulesh_new
 CALI_FILE=${CALI_DIR}/190716-140428166192.cali
 
 # Test dev single jupyter notebook.
-./test-hatchet-template-notebooks.sh \
+./test-hatchet-template-notebook.sh \
     dev \
     ${CALI_FILE}
 ERR=$?
@@ -24,7 +24,7 @@ if [ ${ERR} -eq 1 ]; then
     exit 1
 
 # Test dev multi jupyter notebook.
-./test-multi-hatchet-template-notebooks.sh \
+./test-multi-hatchet-template-notebook.sh \
     dev \
     ${CALI_DIR}
 ERR=$?
@@ -71,7 +71,7 @@ cd $DIR
 echo -e "Test live template notebooks with known data..."
 
 # Test live jupyter notebook.
-./test-hatchet-template-notebooks.sh \
+./test-hatchet-template-notebook.sh \
     live \
     ${CALI_FILE}
 ERR=$?
@@ -79,7 +79,7 @@ if [ ${ERR} -eq 1 ]; then
     exit 1
 
 # Test live multi jupyter notebook.
-./test-multi-hatchet-template-notebooks.sh \
+./test-multi-hatchet-template-notebook.sh \
     live \
     ${CALI_DIR}
 ERR=$?
