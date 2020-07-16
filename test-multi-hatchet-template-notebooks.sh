@@ -10,25 +10,26 @@ user_in_spotdev()
 }
 
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <cali-file>"
+    echo "Usage: $0 <path-to-cali-dir>"
     exit 1
 fi
 
-CALI_FILE=$1
+CALI_DIR=$1
+CALI_FILES=$(echo `ls ${CALI_DIR}`)
 
-# run spot.py to update variables in template notebook
-JUPYTER_NB=$(./spot.py --ci_testing jupyter ${CALI_FILE})
-OUTFILE=$(echo ${JUPYTER_NB} | rev | cut -d "." -f 2- | rev).nbconvert.ipynb
+## run spot.py to update variables in multi template notebook
+MULTI_JUPYTER_NB=$(./spot.py --ci_testing multi_jupyter ${CALI_DIR} "${CALI_FILES}")
+OUTFILE=$(echo ${MULTI_JUPYTER_NB} | rev | cut -d "." -f 2- | rev).nbconvert.ipynb
 
-echo -e "CI Testing for Jupyter:"
+echo -e "CI Testing for Multi Jupyter:"
 echo -e "    Running As: ${USER}"
 echo -e "    Member of spotdev?: $(user_in_spotdev ${USER})"
-echo -e "    Input Jupyter Notebook:"
-echo -e "        ${JUPYTER_NB}"
-echo -e "    Output Jupyter Notebook:"
+echo -e "    Input Multi Jupyter Notebook:"
+echo -e "        ${MULTI_JUPYTER_NB}"
+echo -e "    Output Multi Jupyter Notebook:"
 echo -e "        ${OUTFILE}"
-echo -e "    Cali File:"
-echo -e "        ${CALI_FILE}"
+echo -e "    Directory of Cali Files:"
+echo -e "        ${CALI_DIR}"
 
 echo -e ""
 
@@ -38,7 +39,7 @@ jupyter nbconvert \
     --execute \
     --ExecutePreprocessor.timeout=60 \
     --output ${OUTFILE} \
-    ${JUPYTER_NB}
+    ${MULTI_JUPYTER_NB}
 
 err=$?
 
