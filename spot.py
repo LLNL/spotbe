@@ -87,6 +87,9 @@ def multi_jupyter(args):
     ntbk_template_str = open(CONFIG['multi_template_notebook']).read().replace('MUTLI_CALI_FILES', line_strs ).replace('CALI_METRIC_NAME', str(first_metric_name))
     ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
 
+    dd = get_deploy_dir()
+    ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
+
     open(ntbk_path, 'w').write(ntbk_template_str)
 
     # return Jupyterhub address
@@ -112,6 +115,9 @@ def jupyter(args):
 
         ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', '/data/' + str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
 
+        dd = get_deploy_dir()
+        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
+
         os.makedirs(ntbk_path,exist_ok=True)
 
         open(os.path.join(ntbk_path, ntbk_name), 'w').write(ntbk_template_str)
@@ -129,6 +135,9 @@ def jupyter(args):
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
         ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
+        
+        dd = get_deploy_dir()
+        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
 
         open(ntbk_path, 'w').write(ntbk_template_str)
 
