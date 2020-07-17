@@ -69,7 +69,7 @@ def multi_jupyter(args):
     loop0 = 0
     first_metric_name = ""
 
-    for i in cali_keys:
+    for i in sorted(cali_keys):
         full_c_path = cali_path + '/' + i
         metric_name = defaultKey(str(full_c_path))
 
