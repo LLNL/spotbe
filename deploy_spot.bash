@@ -79,9 +79,10 @@ cd $LIVE
 ls $HATCHET
 ls $CALIPER
 
+echo "Ending early for now so we do not deploy."
 exit
 
-asdf
+
 sleep 10000
 echo 'Now deploying...'
 
