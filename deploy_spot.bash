@@ -56,6 +56,7 @@ CALI_FILE=${CALI_DIR}/190716-140428166192.cali
 ERR=$?
 if [ ${ERR} -eq 1 ]; then
     exit 1
+fi
 
 # Test dev multi jupyter notebook.
 ./deployment-scripts/test-multi-hatchet-template-notebook.sh \
@@ -64,6 +65,7 @@ if [ ${ERR} -eq 1 ]; then
 ERR=$?
 if [ ${ERR} -eq 1 ]; then
     exit 1
+fi
 ##############################################################################
 
 echo 'DEV      = '$DEV
@@ -111,6 +113,7 @@ echo -e "Test live template notebooks with known data and current user..."
 ERR=$?
 if [ ${ERR} -eq 1 ]; then
     exit 1
+fi
 
 # Test live multi jupyter notebook.
 ./deployment-scripts/test-multi-hatchet-template-notebook.sh \
@@ -119,6 +122,7 @@ if [ ${ERR} -eq 1 ]; then
 ERR=$?
 if [ ${ERR} -eq 1 ]; then
     exit 1
+fi
 ##############################################################################
 
 echo -e ""
