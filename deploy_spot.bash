@@ -83,12 +83,15 @@ echo "Ending early for now so we do not deploy."
 exit
 
 
-sleep 10000
+#sleep 10000
 echo 'Now deploying...'
 
-git fetch;
-git reset --hard origin/develop;
-chmod -R 755 web;
+#git fetch;
+#git reset --hard origin/develop;
+#chmod -R 755 web;
+
+cp -r $DEV"*" $LIVE
+
 cat web/js/Environment.js
 
 # now copy hatchet to live

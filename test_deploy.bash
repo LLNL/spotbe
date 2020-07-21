@@ -22,3 +22,21 @@ if [ ${ERR} -eq 1 ]; then
     exit 1
 fi
 
+# Test dev single jupyter notebook.
+./deployment-scripts/test-hatchet-template-notebook.sh \
+    live \
+    ${CALI_FILE}
+ERR=$?
+if [ ${ERR} -eq 1 ]; then
+    exit 1
+fi
+
+# Test dev multi jupyter notebook.
+./deployment-scripts/test-multi-hatchet-template-notebook.sh \
+    live \
+    ${CALI_DIR}
+ERR=$?
+if [ ${ERR} -eq 1 ]; then
+    exit 1
+fi
+
