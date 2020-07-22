@@ -14,15 +14,13 @@ DESCRIPTION
     script.
 
 REQUIREMENT
-    Have you run both scripts in deployment-scripts/ with a user that is not a
-    member of spotdev? If not, please start a new shell with this user, and
-    execute both scripts before trying to deploy Spot:
+    Have you tested Spot with a user that is not a member of spotdev? If not,
+    please start a new shell with this user, and execute the following script
+    to test the dev Jupyter notebooks before trying to deploy Spot:
 
-    $ ./deployment-scripts/test-hatchet-template-notebook.sh dev <cali-file>
-    $ ./deployment-scripts/test-multi-hatchet-template-notebook.sh dev <path-to-cali-dir>
+    $ ./deployment-scripts/non-spotdev-dev.sh
 
-    If both of these succeed, then issue the following to proceed with the
-    deployment:
+    If this succeeds, then issue the following to proceed with the deployment:
 
     $ $0 passed"
     echo -e ""
@@ -83,12 +81,15 @@ echo "Ending early for now so we do not deploy."
 exit
 
 
-sleep 10000
+#sleep 10000
 echo 'Now deploying...'
 
-git fetch;
-git reset --hard origin/develop;
-chmod -R 755 web;
+#git fetch;
+#git reset --hard origin/develop;
+#chmod -R 755 web;
+
+cp -r $DEV"*" $LIVE
+
 cat web/js/Environment.js
 
 # now copy hatchet to live
@@ -127,6 +128,10 @@ fi
 ##############################################################################
 
 echo -e ""
-echo -e "Now please test live template notebooks with user not in spotdev group
-to verify Spot deployment."
+echo -e "Now please test live template notebooks with a user that is not a
+member of spotdev to verify Spot's deployment:
+
+$ ./deployment-scripts/non-spotdev-live.sh"
 echo -e ""
+
+#
