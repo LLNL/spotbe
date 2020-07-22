@@ -51,55 +51,76 @@ def multi_jupyter(args):
 
     #  - first create directory
     cali_path = args.cali_filepath
-    cali_keys = args.cali_keys.split(' ')
-    try: cali_keys = json.loads(args.cali_keys)
-    except: pass
-    ntbk_dir = os.path.expanduser('~/spot_jupyter')
+    cali_keys = json.loads(args.cali_keys)
+    isContainer = args.container
 
-    try:
-      os.mkdir(ntbk_dir)
-    except: pass
+    if isContainer:
+        multi_cali_files = [{ 'cali_file'  : os.path.join('/data', cali_path, cali_key)
+                            , 'metric_name': defaultKey(os.path.join('/data', cali_path, cali_key))
+                            } 
+                              for cali_key in cali_keys
+                           ]
 
-    #  - copy template (replacing CALI_FILE_NAME)
-    #metric_name = defaultKey(str(cali_path))
-    path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
-    path = "combo"
+        ntbk_template_str = (open(CONFIG['multi_template_notebook']).read()
+                                .replace('MUTLI_CALI_FILES', '"CALI_FILES = {}\\n"'.format(json.dumps(multi_cali_files, indent=2).replace('"', '\\"').replace('\n','\\n')))
+                                .replace('CALI_METRIC_NAME', multi_cali_files[0]['metric_name'])
+                                .replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
+                                .replace('DEPLOY_DIR', '/usr/gapps/spot/')
+                            )
 
-    line_strs = '"CALI_FILES = [ '
-    loop0 = 0
-    first_metric_name = ""
+        os.makedirs('/notebooks',exist_ok=True)
 
-    for i in sorted(cali_keys):
-        full_c_path = cali_path + '/' + i
-        metric_name = defaultKey(str(full_c_path))
+        open('/notebooks/combo.ipynb', 'w').write(ntbk_template_str)
+        print('succesfully made notebook')
 
-        if loop0 == 0:
-            first_metric_name = metric_name
-
-        dira = cali_path + '/' + i
-        line_strs = line_strs + '\\n { \\"cali_file\\": \\"' + dira + '\\", \\"metric_name\\": \\"' + metric_name + '\\"}, '
-        loop0 = loop0 + 1
-
-
-    line_strs = line_strs + '\\n]\\n"'
-
-    ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
-    ntbk_template_str = open(CONFIG['multi_template_notebook']).read().replace('MUTLI_CALI_FILES', line_strs ).replace('CALI_METRIC_NAME', str(first_metric_name))
-    ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
-
-    dd = get_deploy_dir()
-    ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
-
-    open(ntbk_path, 'w').write(ntbk_template_str)
-
-    # return Jupyterhub address
-    rz_or = "rz" if socket.gethostname().startswith('rz') else ""
-    end_path = urllib.parse.quote(os.path.basename(ntbk_path))
-
-    if args.ci_testing:
-        print(ntbk_path)
     else:
-        print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
+        ntbk_dir = os.path.expanduser('~/spot_jupyter')
+        try:
+            os.mkdir(ntbk_dir)
+        except: pass
+
+        #  - copy template (replacing CALI_FILE_NAME)
+        #metric_name = defaultKey(str(cali_path))
+        path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
+        path = "combo"
+
+        line_strs = '"CALI_FILES = [ '
+        loop0 = 0
+        first_metric_name = ""
+
+        for i in sorted(cali_keys):
+            full_c_path = cali_path + '/' + i
+            metric_name = defaultKey(str(full_c_path))
+
+            if loop0 == 0:
+                first_metric_name = metric_name
+
+            dira = cali_path + '/' + i
+            line_strs = line_strs + '\\n { \\"cali_file\\": \\"' + dira + '\\", \\"metric_name\\": \\"' + metric_name + '\\"}, '
+            loop0 = loop0 + 1
+
+
+        line_strs = line_strs + '\\n]\\n"'
+
+        ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
+        ntbk_template_str = open(CONFIG['multi_template_notebook']).read()
+        ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', line_strs )
+        ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', str(first_metric_name))
+        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
+
+        dd = get_deploy_dir()
+        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
+
+        open(ntbk_path, 'w').write(ntbk_template_str)
+
+        # return Jupyterhub address
+        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
+        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
+
+        if args.ci_testing:
+            print(ntbk_path)
+        else:
+            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 def jupyter(args):
 
@@ -114,9 +135,8 @@ def jupyter(args):
         (ntbk_path, ntbk_name) = os.path.split(os.path.join('/notebooks', cali_path[:cali_path.rfind(".") ] + '.ipynb'))
 
         ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', '/data/' + str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-
-        dd = get_deploy_dir()
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
+        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
+        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
 
         os.makedirs(ntbk_path,exist_ok=True)
 
@@ -387,13 +407,13 @@ if __name__ == "__main__":
     # argparse
     parser = argparse.ArgumentParser(description="utility to access data from .cali files/directory or database")
     parser.add_argument("--config", help="filepath to yaml config file")
+    parser.add_argument("--container", action="store_true", help="use if running container version of spot")
     parser.add_argument("--ci_testing", help="get notebook path for CI tests", action="store_true")
     subparsers = parser.add_subparsers(dest="sub_name")
 
 
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-    jupyter_sub.add_argument("--container", action="store_true", help="use if running container version of spot")
     jupyter_sub.set_defaults(func=jupyter)
 
     multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
