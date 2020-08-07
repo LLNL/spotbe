@@ -1,0 +1,149 @@
+[
+{
+	"block":0,
+	"iter_per_sec":33.775829,
+	"mem_read_bw":8317.685910,
+	"mem_write_bw":6566.552348,
+	"sum#loop.iterations":106
+},
+{
+	"block":100,
+	"iter_per_sec":34.532125,
+	"mem_read_bw":8586.235564,
+	"mem_write_bw":6712.812069,
+	"sum#loop.iterations":107
+},
+{
+	"block":900,
+	"iter_per_sec":34.294428,
+	"mem_read_bw":8534.608368,
+	"mem_write_bw":6667.837360,
+	"sum#loop.iterations":90
+},
+{
+	"block":1800,
+	"iter_per_sec":35.039224,
+	"mem_read_bw":8714.036945,
+	"mem_write_bw":6811.566286,
+	"sum#loop.iterations":90
+},
+{
+	"block":400,
+	"iter_per_sec":34.443949,
+	"mem_read_bw":8565.134633,
+	"mem_write_bw":6694.377703,
+	"sum#loop.iterations":108
+},
+{
+	"block":1300,
+	"iter_per_sec":34.775642,
+	"mem_read_bw":8639.834540,
+	"mem_write_bw":6757.446721,
+	"sum#loop.iterations":108
+},
+{
+	"block":800,
+	"iter_per_sec":34.343520,
+	"mem_read_bw":8539.290694,
+	"mem_write_bw":6674.389973,
+	"sum#loop.iterations":108
+},
+{
+	"block":1700,
+	"iter_per_sec":35.048037,
+	"mem_read_bw":8719.989008,
+	"mem_write_bw":6815.360507,
+	"sum#loop.iterations":108
+},
+{
+	"block":300,
+	"iter_per_sec":34.175270,
+	"mem_read_bw":8498.002000,
+	"mem_write_bw":6641.927923,
+	"sum#loop.iterations":106
+},
+{
+	"block":1200,
+	"iter_per_sec":34.639739,
+	"mem_read_bw":8613.170454,
+	"mem_write_bw":6734.034113,
+	"sum#loop.iterations":90
+},
+{
+	"block":700,
+	"iter_per_sec":34.247488,
+	"mem_read_bw":8517.467067,
+	"mem_write_bw":6655.624565,
+	"sum#loop.iterations":90
+},
+{
+	"block":1600,
+	"iter_per_sec":34.943396,
+	"mem_read_bw":8681.981333,
+	"mem_write_bw":6790.240832,
+	"sum#loop.iterations":90
+},
+{
+	"block":200,
+	"iter_per_sec":34.746057,
+	"mem_read_bw":8640.308702,
+	"mem_write_bw":6754.700097,
+	"sum#loop.iterations":90
+},
+{
+	"block":1100,
+	"iter_per_sec":34.535400,
+	"mem_read_bw":8587.923830,
+	"mem_write_bw":6712.309852,
+	"sum#loop.iterations":108
+},
+{
+	"block":2000,
+	"iter_per_sec":35.327859,
+	"mem_read_bw":8776.162958,
+	"mem_write_bw":6865.588672,
+	"sum#loop.iterations":22
+},
+{
+	"block":600,
+	"iter_per_sec":34.082615,
+	"mem_read_bw":8476.566549,
+	"mem_write_bw":6622.930792,
+	"sum#loop.iterations":106
+},
+{
+	"block":1500,
+	"iter_per_sec":35.044068,
+	"mem_read_bw":8709.279511,
+	"mem_write_bw":6809.797995,
+	"sum#loop.iterations":108
+},
+{
+	"block":1000,
+	"iter_per_sec":34.489972,
+	"mem_read_bw":8581.946783,
+	"mem_write_bw":6704.602481,
+	"sum#loop.iterations":108
+},
+{
+	"block":1900,
+	"iter_per_sec":34.996351,
+	"mem_read_bw":8698.920770,
+	"mem_write_bw":6800.905073,
+	"sum#loop.iterations":108
+},
+{
+	"block":500,
+	"iter_per_sec":34.402591,
+	"mem_read_bw":8555.208178,
+	"mem_write_bw":6687.208295,
+	"sum#loop.iterations":90
+},
+{
+	"block":1400,
+	"iter_per_sec":34.991462,
+	"mem_read_bw":8695.692905,
+	"mem_write_bw":6800.233258,
+	"sum#loop.iterations":90
+}
+]

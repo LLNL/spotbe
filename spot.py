@@ -297,6 +297,13 @@ def _getAllJsonRuns(filepath, subpaths):
            }
 
 
+def memoryGraph(args):
+
+    output = { 'line_graph':'2'
+           }
+    json.dump(output, sys.stdout, indent=4)
+
+
 def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
@@ -411,6 +418,9 @@ if __name__ == "__main__":
     parser.add_argument("--ci_testing", help="get notebook path for CI tests", action="store_true")
     subparsers = parser.add_subparsers(dest="sub_name")
 
+    memory_sub = subparsers.add_parser("memory")
+    memory_sub.add_argument("count", help="enter memory count")
+    memory_sub.set_defaults(func=memoryGraph)
 
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
