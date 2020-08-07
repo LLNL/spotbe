@@ -299,9 +299,13 @@ def _getAllJsonRuns(filepath, subpaths):
 
 def memoryGraph(args):
 
-    output = { 'line_graph':'2'
-           }
-    json.dump(output, sys.stdout, indent=4)
+    dd = get_deploy_dir()
+    opdat = open( dd + '/templates/lo.json').read()
+
+    output = {}
+    output['std'] = opdat
+
+    json.dump(opdat, sys.stdout, indent=4)
 
 
 def getData(args):
