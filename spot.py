@@ -35,6 +35,12 @@ def _cali_to_json(filepath):
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
     return cali_json
 
+def _cali_memory_to_json(filepath):
+    
+    query = 'format json(object) where spot.channel=timeseries'
+    cali_json = _sub_call([CONFIG['caliquery'] , '-q', query, filepath])
+    return cali_json
+
 def defaultKey(filepath):
 
 
