@@ -308,8 +308,12 @@ def memoryGraph(args):
     dd = get_deploy_dir()
     opdat = open( dd + '/templates/lo.json').read()
 
+    filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
+    records = _cali_memory_to_json(filepath)
+
     output = {}
     output['std'] = opdat
+    output['records'] = records
 
     json.dump(opdat, sys.stdout, indent=4)
 
