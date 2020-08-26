@@ -35,7 +35,7 @@ def _cali_to_json(filepath):
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
     return cali_json
 
-def _cali_memory_to_json(filepath):
+def _cali_timeseries_to_json(filepath):
     
     query = 'format json(object) where spot.channel=timeseries'
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', query, filepath])
@@ -308,14 +308,15 @@ def memoryGraph(args):
     dd = get_deploy_dir()
     opdat = open( dd + '/templates/lo.json').read()
 
-    filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
-    records = _cali_memory_to_json(filepath)
+    #filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
+    filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4.cali"
+    series = _cali_timeseries_to_json(filepath)
 
     output = {}
     output['std'] = opdat
-    output['records'] = records
+    output['series'] = series
 
-    json.dump(opdat, sys.stdout, indent=4)
+    json.dump(output, sys.stdout, indent=4)
 
 
 def getData(args):
