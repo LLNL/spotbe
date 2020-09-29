@@ -305,16 +305,19 @@ def _getAllJsonRuns(filepath, subpaths):
 
 def memoryGraph(args):
 
+    cali_path = args.cali_filepath
+
     dd = get_deploy_dir()
     opdat = open( dd + '/templates/lo.json').read()
 
     #filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
-    filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4.cali"
-    series = _cali_timeseries_to_json(filepath)
+    filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4b.cali"
+    series = _cali_timeseries_to_json( cali_path )
 
     output = {}
     output['std'] = opdat
     output['series'] = series
+    output['cali_path'] = cali_path
 
     json.dump(output, sys.stdout, indent=4)
 
@@ -434,7 +437,8 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="sub_name")
 
     memory_sub = subparsers.add_parser("memory")
-    memory_sub.add_argument("count", help="enter memory count")
+    memory_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    #memory_sub.add_argument("count", help="enter memory count")
     memory_sub.set_defaults(func=memoryGraph)
 
     jupyter_sub = subparsers.add_parser("jupyter")
