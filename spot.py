@@ -209,6 +209,7 @@ def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
             funcpath = rec.pop('path', None)
             if funcpath:
                 runData[funcpath] = rec
+
         runGlobals = json.loads(_globals)
         runs[runNum] = {'Globals': runGlobals, 'Data': runData}
 
@@ -248,8 +249,14 @@ def _getAllCaliRuns(filepath, subpaths):
         # get runGlobals and runGlobalMeta
         for (global_, val) in run['globals'].items():
             adiakType = _getAdiakType(run, global_)
+            
+            if global_ == "spot.options":
+                if val == "timeseries":
+                    runGlobals['timeseries'] = 1
+
             if adiakType:
                 runGlobals[global_] = val
+          
                 runGlobalMeta[global_] = {'type': adiakType}
 
         # collect run
