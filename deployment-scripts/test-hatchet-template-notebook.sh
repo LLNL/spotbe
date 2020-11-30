@@ -22,6 +22,7 @@ JUPYTER_NB=$(/usr/gapps/spot/${DEPLOY_DIR}/spot.py --ci_testing jupyter ${CALI_F
 OUTFILE=$(echo ${JUPYTER_NB} | rev | cut -d "." -f 2- | rev).nbconvert.ipynb
 
 echo -e "CI Testing for Jupyter in Spot ${DEPLOY_DIR}:"
+echo -e "    Server Running On: $(hostname)"
 echo -e "    Running As: ${USER}"
 echo -e "    Member of spotdev?: $(user_in_spotdev ${USER})"
 echo -e "    Input Jupyter Notebook:"
