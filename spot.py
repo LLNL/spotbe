@@ -47,7 +47,13 @@ def defaultKey(filepath):
     records = _cali_to_json(filepath)['records']
     if len(records) == 0:
         return ""
-    key = (list(records[0].keys())[0])
+
+    key_list = list(records[0].keys())
+    key = (key_list[0])
+
+    if key_list[0] == "spot.channel" and len(key_list) > 1:
+        return key_list[1]
+
     return key
 
 
