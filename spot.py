@@ -41,12 +41,17 @@ def _cali_timeseries_to_json(filepath):
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', query, filepath])
     return cali_json
 
-def defaultKey(filepath):
 
+def defaultKey(filepath):
 
     records = _cali_to_json(filepath)['records']
     if len(records) == 0:
         return ""
+
+    #c_obj = _cali_to_json(filepath)
+    #metrics = c_obj['globals']['spot.metrics']
+    #key = metrics.split(',')[0]
+    #return key
 
     key_list = list(records[0].keys())
     key = (key_list[0])
