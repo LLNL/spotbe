@@ -237,7 +237,12 @@ def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
 def _getAllCaliRuns(filepath, subpaths):
     import multiprocessing
 
-    cali_json = multiprocessing.Pool(18).map( _cali_to_json, _prependDir(filepath, subpaths))
+    cali_json = []
+    try:
+        cali_json = multiprocessing.Pool(18).map( _cali_to_json, _prependDir(filepath, subpaths))
+    except:
+        for fp in _prependDir(filepath, subpaths):
+            cali_json.append(_cali_to_json(fp))
 
     # process all new files to transfer to front-end
     runs = {}
