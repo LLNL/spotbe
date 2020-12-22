@@ -330,15 +330,15 @@ def memoryGraph(args):
 
     cali_path = args.cali_filepath
 
-    dd = get_deploy_dir()
-    opdat = open( dd + '/templates/lo.json').read()
+    #dd = get_deploy_dir()
+    #opdat = open( dd + '/templates/lo.json').read()
 
     #filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
     filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4b.cali"
     series = _cali_timeseries_to_json( cali_path )
 
     output = {}
-    output['std'] = opdat
+    #output['std'] = opdat
     output['series'] = series
     output['cali_path'] = cali_path
 
