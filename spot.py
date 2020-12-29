@@ -72,8 +72,8 @@ def multi_jupyter(args):
     isContainer = args.container
 
     if isContainer:
-        multi_cali_files = [{ 'cali_file'  : os.path.join('/data', cali_path, cali_key)
-                            , 'metric_name': defaultKey(os.path.join('/data', cali_path, cali_key))
+        multi_cali_files = [{ 'cali_file'  : os.path.join(cali_path, cali_key)
+                            , 'metric_name': defaultKey(os.path.join(cali_path, cali_key))
                             } 
                               for cali_key in cali_keys
                            ]
@@ -148,10 +148,12 @@ def jupyter(args):
     isContainer = args.container
 
     if isContainer:
-        metric_name = defaultKey('/data/' + str(cali_path))
-        (ntbk_path, ntbk_name) = os.path.split(os.path.join('/notebooks', cali_path[:cali_path.rfind(".") ] + '.ipynb'))
+        metric_name = defaultKey(str(cali_path))
+        subextension = cali_path[:cali_path.rfind(".")] + '.ipynb'
+        ntbk_fullpath = os.path.normpath(os.path.join('/notebooks', *subextension.split(os.sep)))
+        (ntbk_path, ntbk_name) = os.path.split(ntbk_fullpath)
 
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', '/data/' + str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
         ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
 
