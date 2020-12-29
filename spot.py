@@ -62,12 +62,25 @@ def defaultKey(filepath):
     return key
 
 
-def get_jupyter_auth():
+def get_jupyter_info():
+    jsonstr = ""
+    path = os.getenv("JUPYTERSERVER")
+    if not path or not os.access(path, os.R_OK):
+        dir = subprocess.check_output(["/opt/conda/bin/jupyter", "--runtime-dir"]).decode("utf8").rstrip()
+        candidates = [f for f in os.listdir(dir) if "nbserver" in f and ".json" in f]
+        if not candidates or len(candidates) > 1:
+            return {}
+        path = os.path.join(dir, candidates[0])
+    
     try:
-        token = open('/tmp/jupytertoken', 'r').read().rstrip()
+        jsonstr = open(path, 'r').read()
     except:
-        return None
-    return token
+        return {}
+    jdict = json.loads(jsonstr)
+    resultdict = {}
+    resultdict["token"] = jdict["token"]
+    resultdict["port"] = jdict["port"]
+    return resultdict
 
 def multi_jupyter(args):
 
@@ -97,10 +110,7 @@ def multi_jupyter(args):
         fullpath = '/notebooks/combo.ipynb'
         open(fullpath, 'w').write(ntbk_template_str)
 
-        jsonret = {}
-        token = get_jupyter_auth()
-        if token:
-            jsonret["token"] = token
+        jsonret = get_jupyter_info()
         jsonret["path"] = fullpath
         print(json.dumps(jsonret))
 
@@ -174,10 +184,7 @@ def jupyter(args):
         os.makedirs(ntbk_path,exist_ok=True)
         open(ntbk_fullpath, 'w').write(ntbk_template_str)
 
-        jsonret = {}
-        token = get_jupyter_auth()
-        if token:
-            jsonret["token"] = token
+        jsonret = get_jupyter_info()
         jsonret["path"] = ntbk_fullpath
         print(json.dumps(jsonret))
 
