@@ -62,6 +62,13 @@ def defaultKey(filepath):
     return key
 
 
+def get_jupyter_auth():
+    try:
+        token = open('/tmp/jupytertoken', 'r').read().rstrip()
+    except:
+        return None
+    return token
+
 def multi_jupyter(args):
 
     # create notebook in ~/spot_jupyter dir
@@ -87,8 +94,15 @@ def multi_jupyter(args):
 
         os.makedirs('/notebooks',exist_ok=True)
 
-        open('/notebooks/combo.ipynb', 'w').write(ntbk_template_str)
-        print('succesfully made notebook')
+        fullpath = '/notebooks/combo.ipynb'
+        open(fullpath, 'w').write(ntbk_template_str)
+
+        jsonret = {}
+        token = get_jupyter_auth()
+        if token:
+            jsonret["token"] = token
+        jsonret["path"] = fullpath
+        print(json.dumps(jsonret))
 
     else:
         ntbk_dir = os.path.expanduser('~/spot_jupyter')
@@ -158,9 +172,14 @@ def jupyter(args):
         ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
 
         os.makedirs(ntbk_path,exist_ok=True)
+        open(ntbk_fullpath, 'w').write(ntbk_template_str)
 
-        open(os.path.join(ntbk_path, ntbk_name), 'w').write(ntbk_template_str)
-        print('succesfully made notebook')
+        jsonret = {}
+        token = get_jupyter_auth()
+        if token:
+            jsonret["token"] = token
+        jsonret["path"] = ntbk_fullpath
+        print(json.dumps(jsonret))
 
     else:
         ntbk_dir = os.path.expanduser('~/spot_jupyter')
