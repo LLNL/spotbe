@@ -23,6 +23,10 @@ cali_query_replace = dd + 'caliper/\\" + machine + \\"/bin'
 CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
          , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
+         , 'jupyter_port': 0
+         , 'jupyter_host': ''
+         , 'jupyter_use_token': True
+         , 'jupyter_token': ''
          }
 
 
@@ -64,22 +68,39 @@ def defaultKey(filepath):
 
 def get_jupyter_info():
     jsonstr = ""
-    path = os.getenv("JUPYTERSERVER")
-    if not path or not os.access(path, os.R_OK):
-        dir = subprocess.check_output(["/opt/conda/bin/jupyter", "--runtime-dir"]).decode("utf8").rstrip()
-        candidates = [f for f in os.listdir(dir) if "nbserver" in f and ".json" in f]
-        if not candidates or len(candidates) > 1:
-            return {}
-        path = os.path.join(dir, candidates[0])
+    port = CONFIG['jupyter_port']
+    host = CONFIG['jupyter_host']
+    use_token = CONFIG['jupyter_use_token']
+    token = CONFIG['jupyter_token']
+
+    jdict = {}
+    if (use_token and not token) or (port == 0):
+        path = os.getenv("JUPYTERSERVER")
+        if not path or not os.access(path, os.R_OK):
+            dir = subprocess.check_output(["/opt/conda/bin/jupyter", "--runtime-dir"]).decode("utf8").rstrip()
+            candidates = [f for f in os.listdir(dir) if "nbserver" in f and ".json" in f]
+            if not candidates or len(candidates) > 1:
+                return {}
+            path = os.path.join(dir, candidates[0])
     
-    try:
-        jsonstr = open(path, 'r').read()
-    except:
-        return {}
-    jdict = json.loads(jsonstr)
+        try:
+            jsonstr = open(path, 'r').read()
+            jdict = json.loads(jsonstr)
+        except:
+            pass
+          
     resultdict = {}
-    resultdict["token"] = jdict["token"]
-    resultdict["port"] = jdict["port"]
+    if use_token:
+        if not token:
+            resultdict["token"] = jdict["token"]
+        else:
+            resultdict["token"] = token
+    if port == 0:
+        resultdict["port"] = jdict["port"]
+    else:
+        resultdict["port"] = port
+    if host:
+        resultdict["server"] = host
     return resultdict
 
 def multi_jupyter(args):
