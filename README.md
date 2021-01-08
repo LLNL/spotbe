@@ -1,47 +1,14 @@
-# Overview
+# SPOT Back-End
 
-backend is called from the frontend using lorenz endpoint:
+This is the back-end code to SPOT, a web-based visualization tool for performance data.  
 
-```js
-    $.ajax({
-        dataType:'jsonp',
-        url:     'https://rzlc.llnl.gov/lorenz/lora/lora.cgi/jsonp',
-        data:   {'via'    : 'post',
-                'route'  : '/command/rztopaz',
-                'command': '/usr/tce/bin/python3 /usr/gapps/spot/spot.py ' + spotArgs  
-                }
-    }).done(function(value) { var spotReturnedValue = value.output.command_out; });
-```
----
+You likely don't want to check out this repo directly, unless you're making changes to SPOT.
+It's instead recommended to get the spot_container and let it check out this repo as a submodule.
+To build SPOT into a container see:
 
-## Summary Call
->*take a directory pathname of .cali files and returns the meta data of each file*
+https://github.com/llnl/spot2_container
 
-```
-usage: spot.py summary [-h] [--layout LAYOUT] filepath
+## Copyright
 
-positional arguments:
-  filepath         file and directory paths
-
-optional arguments:
-  -h, --help       show this help message and exit
-  --layout LAYOUT  layout json filepath
-```
-
-## Hierarchical Call
-
->*Takes a directory pathname of .cali files and returns data to the front end to display as a diveable stacked barchart and flamegraph/sankey diagram*
-
-```
-usage: spot.py hierarchical [-h] [--filenames FILENAMES [FILENAMES ...]]
-                            directory durationKey
-
-positional arguments:
-  directory             directory
-  durationKey           the key for the inclusive duration
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --filenames FILENAMES [FILENAMES ...]
-                        individual filenames sep by space
-```
+Copyright (c) 2021, Lawrence Livermore National Security, LLC. Produced at
+the Lawrence Livermore National Laboratory. LLNL-CODE-813387. All rights reserved.
