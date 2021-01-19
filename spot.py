@@ -5,12 +5,16 @@ from datetime import datetime
 
 def get_deploy_dir():
     is_live = 1
+    pre_dir = '/usr/gapps/spot/'
+
+    if '/sand/' in __file__:
+        return pre_dir + 'sand/'
 
     if '/dev/' in __file__:
         is_live = 0
 
     deploy_dir = 'live/' if is_live == 1 else 'dev/'
-    return '/usr/gapps/spot/' + deploy_dir
+    return pre_dir + deploy_dir
 
 
 # print( get_deploy_dir() )
