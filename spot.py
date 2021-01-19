@@ -343,14 +343,36 @@ def _getAllJsonRuns(filepath, subpaths):
     output = {}
     runs = {}
     for subpath in subpaths:
+        from pprint import pprint
+
         try:
             data = json.load(open(os.path.join(filepath, subpath)))
             commits = data.pop('commits')
             title = data.pop('title')
             yAxis = data.pop('yAxis')
-            show_exclusive = data.pop('show_exclusive')
+
+            show_is_exclusive = data.get('show_exclusive', 'Default')
+ 
+            if show_is_exclusive != 'Default': 
+                 show_exclusive = data.pop('show_exclusive')
+
             series = data.pop('series')
-            dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
+
+
+            dates = []
+  
+            for date in data.pop('XTics'):
+ 
+                 #pprint(date)
+                 split_date = date.split(".")
+                 split_date_pre = split_date[0]
+                 our_date = datetime.strptime(split_date_pre, '%Y-%m-%d %H:%M:%S').timestamp()
+                 int_date = int(our_date)
+                 str_date = str(int_date)
+                 dates.append( str_date )
+  
+            #dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
+ 
             runSetName = subpath[0:subpath.find('.json')]
 
             for i in range(len(dates)):
@@ -367,6 +389,11 @@ def _getAllJsonRuns(filepath, subpaths):
                     runs[runSetName + '-' + str(value[0])]['Data']['main'] = {yAxis: 0}
                     runs[runSetName + '-' + str(value[0])]['Data']['main/'+funcpath] = {yAxis: value[1]}
         except: pass
+        #    error_me = sys.exc_info()
+        #    print('While processing subpath: ' + subpath)
+        #    print('Exception occurred:')
+        #    pprint(error_me)
+        #    print()
 
 
 
@@ -444,7 +471,6 @@ def getData(args):
                         jsonSubpaths.append(runKey)
 
         deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
-
 
         if jsonSubpaths:
             output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
