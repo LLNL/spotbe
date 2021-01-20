@@ -439,6 +439,12 @@ def getData(args):
 
     # file directory
     else:
+        hook_path = os.path.join(dataSetKey, 'SPOTHookOnFileLoad.sh')
+        if os.path.isfile(hook_path) and os.access(hook_path, os.X_OK):
+            result = subprocess.run([hook_path, dataSetKey], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if result.returncode != 0:
+                pass #TODO When SPOT has better error path out of here, utilize it to return an error
+    
         lastReadTime = float(lastRead)
 
         # get subpaths of data files that were added since last read time
