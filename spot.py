@@ -375,29 +375,58 @@ def _getAllJsonRuns(filepath, subpaths):
  
             runSetName = subpath[0:subpath.find('.json')]
 
-            for i in range(len(dates)):
-                runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
-                                                            , 'commit': commits[i]
+
+            xdate = -1 
+            for funcpath, values in data.items():
+
+                #pprint( funcpath )            
+                xdate = xdate + 1
+                com = commits[xdate]
+                the_key = funcpath
+
+                runs[the_key] = { 'Globals': { 'launchdate': dates[xdate] 
+                                                            , 'commit':  com
                                                             , 'title': title
+                                                            , 'has_data': 0
                                                             }
                                                 , 'Data': {}
                                                 }
-
-
-            for funcpath, values in data.items():
+                
                 for value in values:
-                    runs[runSetName + '-' + str(value[0])]['Data']['main'] = {yAxis: 0}
-                    runs[runSetName + '-' + str(value[0])]['Data']['main/'+funcpath] = {yAxis: value[1]}
+
+                    #suffix = value[0] if value[0] else i
+                    #loopKey = runSetName + '-' + str(suffix)
+                    loopKey = the_key
+
+                    val0 = value[0]
+                    val1 = value[1]
+
+                    #if value[0] is not None:
+                    #     val0 = 0 if type(value[0]) is not dict else value[0]
+
+                    #if value[1] is not None:
+                    #     val1 = value[1]
+
+                    runs[loopKey]['Data']['main'] = {'yAxis': val0}
+                    runs[loopKey]['Data']['main/'+funcpath] = {'yAxis': val1}
+
         except: pass
-        #    error_me = sys.exc_info()
+        #    exc_type, exc_obj, exc_tb = sys.exc_info()
         #    print('While processing subpath: ' + subpath)
+        #    print('the_key=' + the_key)
+        #    print('title=' + title)
+        #    print('line_no=' + str(exc_tb.tb_lineno) )
         #    print('Exception occurred:')
-        #    pprint(error_me)
+        #    print('funcpath=' + funcpath)
+        #    pprint(exc_obj)
+        #    pprint(value)
+        #    pprint( type(value))
+        #    pprint(values)
         #    print()
 
 
 
-
+    #pprint(runs)
     return { 'Runs': runs
            , 'RunDataMeta': {'yAxis': {'type': 'double'}}
            , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
