@@ -376,27 +376,27 @@ def _getAllJsonRuns(filepath, subpaths):
             runSetName = subpath[0:subpath.find('.json')]
 
 
-            xdate = -1 
+            run_index = -1 
             for funcpath, values in data.items():
 
                 #pprint( funcpath )            
-                xdate = xdate + 1
-                com = commits[xdate]
-                the_key = funcpath
+                run_index = run_index + 1
+                com = commits[run_index]
+                the_key = run_index
 
-                runs[the_key] = { 'Globals': { 'launchdate': dates[xdate] 
+                runs[run_index] = { 'Globals': { 'launchdate': dates[run_index] 
                                                             , 'commit':  com
                                                             , 'title': title
-                                                            , 'has_data': 0
                                                             }
                                                 , 'Data': {}
                                                 }
-                
+
+                idx = 0                 
                 for value in values:
 
+                    idx=idx + 1
                     #suffix = value[0] if value[0] else i
                     #loopKey = runSetName + '-' + str(suffix)
-                    loopKey = the_key
 
                     val0 = value[0]
                     val1 = value[1]
@@ -407,8 +407,8 @@ def _getAllJsonRuns(filepath, subpaths):
                     #if value[1] is not None:
                     #     val1 = value[1]
 
-                    runs[loopKey]['Data']['main'] = {'yAxis': val0}
-                    runs[loopKey]['Data']['main/'+funcpath] = {'yAxis': val1}
+                    runs[the_key]['Data']['main'] = {'yAxis': val0}
+                    runs[the_key]['Data']['main/'+funcpath] = {'yAxis': val1}
 
         except: pass
         #    exc_type, exc_obj, exc_tb = sys.exc_info()
