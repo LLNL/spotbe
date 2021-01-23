@@ -376,20 +376,8 @@ def _getAllJsonRuns(filepath, subpaths):
             runSetName = subpath[0:subpath.find('.json')]
 
 
-            run_index = -1 
             for funcpath, values in data.items():
 
-                #pprint( funcpath )            
-                run_index = run_index + 1
-                com = commits[run_index]
-                the_key = run_index
-
-                runs[run_index] = { 'Globals': { 'launchdate': dates[run_index] 
-                                                            , 'commit':  com
-                                                            , 'title': title
-                                                            }
-                                                , 'Data': {}
-                                                }
 
                 idx = 0                 
                 for value in values:
@@ -401,19 +389,33 @@ def _getAllJsonRuns(filepath, subpaths):
                     val0 = value[0]
                     val1 = value[1]
 
+                    the_key = val0 - 1
+                    
+                    launchdate = dates[ the_key ]
+                    com = commits[the_key] if commits[the_key] else ""
+
+                    if the_key not in runs:
+
+                        runs[the_key] = { 'Globals': { 'launchdate': launchdate
+                                                            , 'commit':  com
+                                                            , 'title': title
+                                                            }
+                                                , 'Data': {}
+                                                }
+
                     #if value[0] is not None:
                     #     val0 = 0 if type(value[0]) is not dict else value[0]
 
                     #if value[1] is not None:
                     #     val1 = value[1]
 
-                    runs[the_key]['Data']['main'] = {'yAxis': val0}
-                    runs[the_key]['Data']['main/'+funcpath] = {'yAxis': val1}
+                    #runs[the_key]['Data']['main'] = {'yAxis': 10}
+                    runs[the_key]['Data'][funcpath] = {'yAxis': val1}
 
         except: pass
         #    exc_type, exc_obj, exc_tb = sys.exc_info()
         #    print('While processing subpath: ' + subpath)
-        #    print('the_key=' + the_key)
+        #    print('the_key=' + str(the_key))
         #    print('title=' + title)
         #    print('line_no=' + str(exc_tb.tb_lineno) )
         #    print('Exception occurred:')
