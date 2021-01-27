@@ -342,6 +342,8 @@ def _getAllCaliRuns(filepath, subpaths):
 def _getAllJsonRuns(filepath, subpaths):
     output = {}
     runs = {}
+
+    idx = -1  
     for subpath in subpaths:
         from pprint import pprint
 
@@ -358,9 +360,12 @@ def _getAllJsonRuns(filepath, subpaths):
 
             series = data.pop('series')
 
+            #pprint( subpath )
+            #pprint( title )
 
             dates = []
-  
+            the_key = subpath
+
             for date in data.pop('XTics'):
  
                  #pprint(date)
@@ -370,49 +375,47 @@ def _getAllJsonRuns(filepath, subpaths):
                  int_date = int(our_date)
                  str_date = str(int_date)
                  dates.append( str_date )
-  
-            #dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
- 
-            runSetName = subpath[0:subpath.find('.json')]
 
 
-            for funcpath, values in data.items():
 
 
-                idx = 0                 
-                for value in values:
+            idx = idx + 1
+            com = commits[ idx ]
+            launchdate = dates[ idx ] 
 
-                    idx=idx + 1
-                    #suffix = value[0] if value[0] else i
-                    #loopKey = runSetName + '-' + str(suffix)
-
-                    val0 = value[0]
-                    val1 = value[1]
-
-                    the_key = val0 - 1
-                    
-                    launchdate = dates[ the_key ]
-                    com = commits[the_key] if commits[the_key] else ""
-
-                    if the_key not in runs:
-
-                        runs[the_key] = { 'Globals': { 'launchdate': launchdate
+            runs[the_key] = { 'Globals': { 'launchdate': launchdate
                                                             , 'commit':  com
                                                             , 'title': title
                                                             }
                                                 , 'Data': {}
                                                 }
+            #pprint( dates ) 
+            #dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
+ 
+            runSetName = subpath[0:subpath.find('.json')]
 
-                    #if value[0] is not None:
-                    #     val0 = 0 if type(value[0]) is not dict else value[0]
+            for funcpath, values in data.items():
 
-                    #if value[1] is not None:
-                    #     val1 = value[1]
 
-                    #runs[the_key]['Data']['main'] = {'yAxis': 10}
+                #print( 'for funcpath(' + funcpath + ') values in data.items()' )
+                for value in values:
+
+                    #launchdate = dates[ idx2 ]
+                    #idx2=idx2 + 1
+                    #suffix = value[0] if value[0] else i
+                    #loopKey = runSetName + '-' + str(suffix)
+
+                    val0 = 0
+                    if type(value) is list:
+                         val0 = value[0]
+                
+                    val1 = 0 
+                    if type(value) is list:
+                         val1 = value[1]
+                    
                     runs[the_key]['Data'][funcpath] = {'yAxis': val1}
 
-        except: pass
+        except:pass
         #    exc_type, exc_obj, exc_tb = sys.exc_info()
         #    print('While processing subpath: ' + subpath)
         #    print('the_key=' + str(the_key))
