@@ -394,6 +394,16 @@ def _getAllJsonRuns(filepath, subpaths):
  
             runSetName = subpath[0:subpath.find('.json')]
 
+            for i in range(len(dates)):
+                runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
+                                                            , 'commit': commits[i]
+                                                            , 'title': title
+                                                            }
+                                                , 'Data': {}
+                                                }
+
+            #pprint(runs)
+
             for funcpath, values in data.items():
 
 
@@ -412,22 +422,34 @@ def _getAllJsonRuns(filepath, subpaths):
                     val1 = 0 
                     if type(value) is list:
                          val1 = value[1]
-                    
-                    runs[the_key]['Data'][funcpath] = {'yAxis': val1}
+          
+                    #val0 = value[0]
+                    #val1 = value[1]
 
-        except:pass
-        #    exc_type, exc_obj, exc_tb = sys.exc_info()
-        #    print('While processing subpath: ' + subpath)
-        #    print('the_key=' + str(the_key))
-        #    print('title=' + title)
-        #    print('line_no=' + str(exc_tb.tb_lineno) )
-        #    print('Exception occurred:')
-        #    print('funcpath=' + funcpath)
-        #    pprint(exc_obj)
-        #    pprint(value)
-        #    pprint( type(value))
-        #    pprint(values)
-        #    print()
+                    rkey = runSetName + '-' + str(val0)
+
+                    if rkey in runs: 
+                        #runs[rkey]['Data']['main'] = {'yAxis': 0}
+                        runs[rkey]['Data'][funcpath] = {'yAxis': val1}
+         
+                    #runs[rkey]['Data']['main'] = {yAxis: 0}
+                    #runs[rkey]['Data'][funcpath] = {'yAxis': val1}
+
+        except:
+            debugi = 1 
+            if debugi == 1:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                print('While processing subpath: ' + subpath)
+                print('the_key=' + str(the_key))
+                print('title=' + title)
+                print('line_no=' + str(exc_tb.tb_lineno) )
+                print('Exception occurred:')
+                print('funcpath=' + funcpath)
+                pprint(exc_obj)
+                pprint(value)
+                pprint( type(value))
+                pprint(values)
+                print()
 
 
 
