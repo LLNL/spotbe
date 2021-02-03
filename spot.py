@@ -113,7 +113,7 @@ def multi_jupyter(args):
 
     #  - first create directory
     cali_path = args.cali_filepath
-    cali_keys = json.loads(args.cali_keys)
+    cali_keys = args.cali_keys.split(' ')
     isContainer = args.container
 
     if isContainer:
