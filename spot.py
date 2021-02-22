@@ -1,6 +1,8 @@
 #! /usr/gapps/spot/venv_python/bin/python3
 
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
+import cProfile
+
 from datetime import datetime
 
 def get_deploy_dir():
@@ -430,6 +432,7 @@ def _getAllJsonRuns(filepath, subpaths):
 
                     if rkey in runs: 
                         #runs[rkey]['Data']['main'] = {'yAxis': 0}
+                        #if val1 > 0.5:
                         runs[rkey]['Data'][funcpath] = {'yAxis': val1}
          
                     #runs[rkey]['Data']['main'] = {yAxis: 0}
@@ -536,7 +539,8 @@ def getData(args):
         output['deletedRuns'] = list(deletedRuns)
         output['runCtimes'] = runCtimes
 
-    json.dump(output, sys.stdout, indent=4)
+    #json.dump(output, sys.stdout, indent=4)
+    json.dumps(output)
 
 
 def getRun(runId, db=None):
