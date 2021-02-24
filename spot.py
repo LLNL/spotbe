@@ -526,8 +526,9 @@ def getData(args):
                     runCtimes[runKey] = newCtime
                     if newCtime > cachedRunCtimes.get(runKey, 0):
                         newRuns.append(runKey)
+
                 if fname.endswith('.json'):
-                        jsonSubpaths.append(runKey)
+                    jsonSubpaths.append(runKey)
 
         deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
 
@@ -538,9 +539,10 @@ def getData(args):
 
         output['deletedRuns'] = list(deletedRuns)
         output['runCtimes'] = runCtimes
+        output['testingX'] = "2"
 
-    #json.dump(output, sys.stdout, indent=4)
-    json.dumps(output)
+    json.dump(output, sys.stdout, indent=4)
+    #json.dumps(output)
 
 
 def getRun(runId, db=None):
