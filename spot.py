@@ -532,17 +532,40 @@ def getData(args):
 
         deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
 
+        output = {}
+        json_output = {}
+        cali_output = {}
+
         if jsonSubpaths:
-            output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
+            json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
+
         if newRuns:
-            output = _getAllCaliRuns(dataSetKey, newRuns)
+            cali_output = _getAllCaliRuns(dataSetKey, newRuns)
+
+        Merge( json_output, output )
+        Merge( cali_output, output )
 
         output['deletedRuns'] = list(deletedRuns)
         output['runCtimes'] = runCtimes
-        output['testingX'] = "2"
+        output['testingX'] = "3"
 
-    json.dump(output, sys.stdout, indent=4)
-    #json.dumps(output)
+    from RunTable import RunTable
+    from pprint import pprint
+
+    runt = RunTable()
+    table_text = runt.render()
+    print(table_text)
+
+    #pprint( json_output )
+    #print(output)
+    #json.dump(output, sys.stdout, indent=4)
+    jstr = json.dumps(output)
+    #print(jstr)
+
+
+# Python code to merge dict using update() method
+def Merge(dict1, dict2):
+    return(dict2.update(dict1))
 
 
 def getRun(runId, db=None):
