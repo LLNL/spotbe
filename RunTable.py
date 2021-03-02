@@ -1,4 +1,5 @@
 
+import math
 from pprint import pprint
 
 class RunTable:
@@ -7,6 +8,7 @@ class RunTable:
        
         self.between_table = {}
         self.encoder_index = 0
+        self.encoder_lookup = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};:,./<>?`~"
  
         for (file_name) in json_runs['Runs']:
             #pprint( file_name )
@@ -40,8 +42,16 @@ class RunTable:
     def increment_encoder( self ):
     
         self.encoder_index = self.encoder_index + 1 
-        return "ab"
- 
+        en_len = len(self.encoder_lookup)
+        first = self.encoder_index / en_len
+        first = math.floor( first )
+        first = self.encoder_lookup[ first ]
+
+        second = self.encoder_index % en_len
+        second = self.encoder_lookup[ second ]
+
+        return first + second
+
 
     def render(self):
         return "hello world"
