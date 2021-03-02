@@ -5,7 +5,8 @@ from pprint import pprint
 class RunTable:
     
     def __init__(self, json_runs):
-       
+
+        self.json_runs = json_runs       
         self.between_table = {}
         self.encoder_index = 0
         self.encoder_lookup = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};:,./<>?`~"
@@ -15,6 +16,8 @@ class RunTable:
             run = json_runs['Runs'][file_name]
             run_data = run['Data']
             #pprint( run_data )
+            #print( 'Data: ' + str(len( str( run['Data'] ))))
+            #print( 'Globals: ' +str( len( str( run['Globals'] ))))
 
             for (time_key) in run_data:
                 key_split = time_key.split('/')
@@ -66,11 +69,51 @@ class RunTable:
         return estr
 
 
+    def make_compare_str(self):
+
+        compact_runs = {}
+
+        for (file_name) in self.json_runs['Runs']:
+            #pprint( file_name )
+            run = self.json_runs['Runs'][file_name]
+            run_data = run['Data']
+            #pprint( run_data )
+
+            for (time_key_original) in run_data:
+               
+                time_key = time_key_original 
+                yaxis_payload = run_data[ time_key_original ]
+
+                for (between_str) in self.between_table:
+
+                    enc = self.between_table[ between_str ]
+                    #print( time_key_original )
+                    time_key = time_key.replace( between_str, enc )
+                    #print( time_key )
+
+                compact_runs[ time_key ] = yaxis_payload
+
+            #pprint( compact_runs )
+
+        compare_str = ""
+
+        for (time_key) in compact_runs:
+
+            payload = compact_runs[time_key]
+
+            payload_str = str(payload)
+
+            compare_str = compare_str + time_key + ':' + payload_str + ','
+
+        #pprint( compare_str)
+        return compare_str
+
 
     def render(self):
 
         table_str = self.make_table_str()
+        compare_str = self.make_compare_str()
 
-        return table_str
+        return table_str + compare_str
 
 
