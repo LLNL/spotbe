@@ -26,7 +26,7 @@ class RunTable:
         self.encode_table_index()
  
         print( len(self.between_table )) 
-        pprint( self.between_table )
+        #pprint( self.between_table )
         return None
 
 
@@ -53,5 +53,24 @@ class RunTable:
         return first + second
 
 
+
+    def make_table_str(self):
+
+        estr = ""
+
+        for (between_str) in self.between_table:
+
+            enc = self.between_table[ between_str ]
+            estr = estr + between_str + ":" + enc + ","
+
+        return estr
+
+
+
     def render(self):
-        return "hello world"
+
+        table_str = self.make_table_str()
+
+        return table_str
+
+
