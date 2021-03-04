@@ -76,10 +76,9 @@ class RunTable:
         return estr
 
 
-    def make_compare_str(self):
+    def subset_of_runs_handler(self, runs):
 
         compact_runs = {}
-        runs = self.json_runs['Runs']
 
         for (file_name) in runs:
             #pprint( file_name )
@@ -88,8 +87,8 @@ class RunTable:
             #pprint( run_data )
 
             for (time_key_original) in run_data:
-               
-                time_key = time_key_original 
+
+                time_key = time_key_original
                 yaxis_payload = run_data[ time_key_original ]
 
                 for (between_str) in self.between_table:
@@ -101,7 +100,13 @@ class RunTable:
 
                 compact_runs[ time_key ] = yaxis_payload
 
-            #pprint( compact_runs )
+        return compact_runs
+
+
+    def make_compare_str(self):
+
+        runs = self.json_runs['Runs']
+        compact_runs = self.subset_of_runs_handler( runs )
 
         compare_str = ""
 
