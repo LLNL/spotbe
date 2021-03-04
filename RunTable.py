@@ -22,10 +22,15 @@ class RunTable:
             #print( 'Globals: ' +str( len( str( run['Globals'] ))))
 
             for (time_key) in run_data:
+		
+		# typical time_key looks like:
+                # "problem/cycle/all physics/advection/material model evaluate/material: al_6061/leos eos"
                 key_split = time_key.split('/')
                 #pprint( key_split )
 
                 for between in key_split:
+
+                    # typical between looks like "all physics"
                     self.between_table[ between ] = 0 
        
         self.encode_table_index()
@@ -74,10 +79,11 @@ class RunTable:
     def make_compare_str(self):
 
         compact_runs = {}
+        runs = self.json_runs['Runs']
 
-        for (file_name) in self.json_runs['Runs']:
+        for (file_name) in runs:
             #pprint( file_name )
-            run = self.json_runs['Runs'][file_name]
+            run = runs[file_name]
             run_data = run['Data']
             #pprint( run_data )
 
