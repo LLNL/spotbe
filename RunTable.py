@@ -100,14 +100,6 @@ class RunTable:
 
                 compact_runs[ time_key ] = yaxis_payload
 
-        return compact_runs
-
-
-    def make_compare_str(self):
-
-        runs = self.json_runs['Runs']
-        compact_runs = self.subset_of_runs_handler( runs )
-
         compare_str = ""
 
         for (time_key) in compact_runs:
@@ -120,6 +112,39 @@ class RunTable:
 
         #pprint( compare_str)
         return compare_str
+
+
+    def chunks(self, l, n):
+        n = max(1, n)
+        return (l[i:i+n] for i in range(0, len(l), n))
+
+
+    def make_compare_str(self):
+
+        import numpy as np
+
+        runs = self.json_runs['Runs']
+        #pprint(runs )
+        runs_arr = []
+
+        for (i) in runs:
+            runs_arr.append( runs[i] )
+
+        #  Single process works.
+        #compact_runs = self.subset_of_runs_handler( runs )
+        #return compact_runs
+        #pprint( runs_arr )
+
+        run_subsets = np.array_split( runs_arr, 5 )
+        run_subsets = [ runs ]
+        #pprint( run_subsets )
+        #exit()
+        pool_res = multiprocessing.Pool(18).map( self.subset_of_runs_handler, run_subsets )
+
+        compact_str = pool_res[0]
+        #print('len=' + str(len(compact_str))) 
+        #pprint( compact_str )
+        return compact_str
 
 
     def render(self):
