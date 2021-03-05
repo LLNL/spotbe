@@ -76,13 +76,14 @@ class RunTable:
         return estr
 
 
+    # now this takes an array of runs, that contain a 'Data' object
     def subset_of_runs_handler(self, runs):
 
         compact_runs = {}
 
-        for (file_name) in runs:
+        for (run) in runs:
             #pprint( file_name )
-            run = runs[file_name]
+            #run = runs[file_name]
             run_data = run['Data']
             #pprint( run_data )
 
@@ -99,6 +100,7 @@ class RunTable:
                     #print( time_key )
 
                 compact_runs[ time_key ] = yaxis_payload
+
 
         compare_str = ""
 
@@ -135,13 +137,15 @@ class RunTable:
         #return compact_runs
         #pprint( runs_arr )
 
-        run_subsets = np.array_split( runs_arr, 5 )
-        run_subsets = [ runs ]
+        run_subsets = np.array_split( runs_arr, 15 )
+        #run_subsets = [ runs ]
         #pprint( run_subsets )
         #exit()
         pool_res = multiprocessing.Pool(18).map( self.subset_of_runs_handler, run_subsets )
 
-        compact_str = pool_res[0]
+        pprint( len(pool_res) )
+        pprint( pool_res )
+        compact_str = pool_res[1]
         #print('len=' + str(len(compact_str))) 
         #pprint( compact_str )
         return compact_str
