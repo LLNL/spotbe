@@ -76,7 +76,7 @@ class RunTable:
         return estr
 
 
-    # now this takes an array of runs, that contain a 'Data' object
+    # now this takes an array of runs, each run contains a 'Data' object
     def subset_of_runs_handler(self, runs):
 
         compact_runs = {}
@@ -84,7 +84,12 @@ class RunTable:
         for (run) in runs:
             #pprint( file_name )
             #run = runs[file_name]
-            run_data = run['Data']
+            if isinstance( run, dict ) == 1:
+                # in case of single process direct call.
+                run_data = run['Data']
+            else:
+                run_data = runs[ run ]
+
             #pprint( run_data )
 
             for (time_key_original) in run_data:
@@ -132,23 +137,24 @@ class RunTable:
         for (i) in runs:
             runs_arr.append( runs[i] )
 
+        single_process = 0
         #  Single process works.
-        #compact_runs = self.subset_of_runs_handler( runs )
-        #return compact_runs
-        #pprint( runs_arr )
+        if single_process == 1:
 
-        run_subsets = np.array_split( runs_arr, 15 )
-        #run_subsets = [ runs ]
-        #pprint( run_subsets )
-        #exit()
-        pool_res = multiprocessing.Pool(18).map( self.subset_of_runs_handler, run_subsets )
+            compact_runs = self.subset_of_runs_handler( runs )
+            return compact_runs
 
-        pprint( len(pool_res) )
-        pprint( pool_res )
-        compact_str = pool_res[1]
-        #print('len=' + str(len(compact_str))) 
-        #pprint( compact_str )
-        return compact_str
+        else:
+            #pprint( runs_arr )
+            run_subsets = np.array_split( runs_arr, 18 )
+            pool_res = multiprocessing.Pool(18).map( self.subset_of_runs_handler, run_subsets )
+
+            pprint( len(pool_res) )
+            #pprint( pool_res )
+            compact_str = pool_res[1]
+            #print('len=' + str(len(compact_str))) 
+            #pprint( compact_str )
+            return compact_str
 
 
     def render(self):

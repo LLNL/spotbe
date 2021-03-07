@@ -552,14 +552,18 @@ def getData(args):
     from RunTable import RunTable
     from pprint import pprint
 
+    #pprint( json_output )
+    #exit
     runt = RunTable( json_output )
     table_text = runt.render()
+
     print(table_text)
 
     #pprint( json_output )
     #print(output)
     #json.dump(output, sys.stdout, indent=4)
-    jstr = json.dumps(output)
+
+    #jstr = json.dumps(output)
     #print(jstr)
 
 
