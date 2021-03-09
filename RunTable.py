@@ -70,10 +70,10 @@ class RunTable:
 
         for (between_str) in self.between_table:
 
-            enc = self.between_table[ between_str ]
-            estr = estr + between_str + ":" + enc + ","
+            encoded_str = self.between_table[ between_str ]
+            estr = estr + ',' + between_str + ':"' + encoded_str + '"'
 
-        return estr
+        return 'dl={' + estr[1:] + '}'
 
 
     # now this takes an array of runs, each run contains a 'Data' object
