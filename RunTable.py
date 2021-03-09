@@ -71,9 +71,9 @@ class RunTable:
         for (between_str) in self.between_table:
 
             encoded_str = self.between_table[ between_str ]
-            estr = estr + ',' + between_str + ':"' + encoded_str + '"'
+            estr = estr + ',"' + between_str + '":"' + encoded_str + '"'
 
-        return 'dl={' + estr[1:] + '}'
+        return '"dictionary"={' + estr[1:] + '}'
 
 
     # now this takes an array of runs, each run contains a 'Data' object
@@ -115,10 +115,10 @@ class RunTable:
 
             payload_str = str(payload)
 
-            compare_str = compare_str + time_key + ':' + payload_str + ','
+            compare_str = compare_str + ',"' + time_key + '":' + payload_str
 
         #pprint( compare_str)
-        return compare_str
+        return '"values":{' + compare_str[1:] + '}'
 
 
     def chunks(self, l, n):
@@ -162,6 +162,6 @@ class RunTable:
         table_str = self.make_table_str()
         compare_str = self.make_compare_str()
 
-        return table_str + compare_str
+        return '{' + table_str + ',' + compare_str + '}'
 
 
