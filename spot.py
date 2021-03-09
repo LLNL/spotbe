@@ -33,7 +33,7 @@ CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'jupyter_host': ''
          , 'jupyter_use_token': True
          , 'jupyter_token': ''
-         , 'usage_logging_dir': ''
+         , 'usage_logging_dir': '/usr/gapps/spot/logs'
          }
 
 
