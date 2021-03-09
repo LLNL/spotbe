@@ -485,16 +485,19 @@ def memoryGraph(args):
 
 
 def update_usage_file(op):
-    pself = os.path.dirname(os.path.realpath(__file__))
-    usage_file_name = os.path.join(pself, 'usage.log')
+    try:
+        pself = os.path.dirname(os.path.realpath(__file__))
+        usage_file_name = os.path.join(pself, 'usage.log')
 
-    if os.path.exists(usage_file_name):
-        if os.access(usage_file_name, os.W_OK):
-            now = datetime.now()
-            date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-            uname = getpass.getuser()
-            with open(usage_file_name, "a") as myfile:
-                myfile.write(date_time + ' ' + uname + ' ' + op + '\n')
+        if os.path.exists(usage_file_name):
+            if os.access(usage_file_name, os.W_OK):
+                now = datetime.now()
+                date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+                uname = getpass.getuser()
+                with open(usage_file_name, "a") as myfile:
+                    myfile.write(date_time + ' ' + uname + ' ' + op + '\n')
+    except:
+        pass
 
 def getData(args):
     update_usage_file("getData")
