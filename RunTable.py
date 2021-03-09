@@ -105,6 +105,11 @@ class RunTable:
 
                 compact_runs[ time_key ] = yaxis_payload
 
+        return self.make_str_from_compact_runs( compact_runs )
+
+
+
+    def make_str_from_compact_runs(self, compact_runs):
 
         compare_str = ""
 
