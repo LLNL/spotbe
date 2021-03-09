@@ -35,7 +35,7 @@ class RunTable:
        
         self.encode_table_index()
  
-        print( len(self.between_table )) 
+        #print( len(self.between_table )) 
         #pprint( self.between_table )
         return None
 
@@ -73,7 +73,7 @@ class RunTable:
             encoded_str = self.between_table[ between_str ]
             estr = estr + ',"' + between_str + '":"' + encoded_str + '"'
 
-        return '"dictionary"={' + estr[1:] + '}'
+        return '"dictionary":{' + estr[1:] + '}'
 
 
     # now this takes an array of runs, each run contains a 'Data' object
@@ -82,8 +82,7 @@ class RunTable:
         compact_runs = {}
 
         for (run) in runs:
-            #pprint( file_name )
-            #run = runs[file_name]
+
             if isinstance( run, dict ) == 1:
                 # in case of single process direct call.
                 run_data = run['Data']
@@ -121,11 +120,6 @@ class RunTable:
         return '"values":{' + compare_str[1:] + '}'
 
 
-    def chunks(self, l, n):
-        n = max(1, n)
-        return (l[i:i+n] for i in range(0, len(l), n))
-
-
     def make_compare_str(self):
 
         import numpy as np
@@ -151,7 +145,8 @@ class RunTable:
 
             pprint( len(pool_res) )
             #pprint( pool_res )
-            compact_str = pool_res[1]
+            compact_str = pool_res[2]
+            #pprint(pool_res)
             #print('len=' + str(len(compact_str))) 
             #pprint( compact_str )
             return compact_str
