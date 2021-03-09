@@ -33,6 +33,7 @@ CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'jupyter_host': ''
          , 'jupyter_use_token': True
          , 'jupyter_token': ''
+         , 'usage_logging_dir': '/usr/gapps/spot/logs'
          }
 
 
@@ -41,7 +42,6 @@ def _sub_call(cmd):
     return json.loads(subprocess.check_output(cmd).decode('utf-8'))
 
 def _cali_to_json(filepath):
-
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
     return cali_json
 
@@ -484,7 +484,24 @@ def memoryGraph(args):
     json.dump(output, sys.stdout, indent=4)
 
 
+def update_usage_file(op):
+    try:
+        usage_dir = CONFIG['usage_logging_dir']
+        if (usage_dir != ''):
+            usage_file_name = os.path.join(usage_dir, 'usage.log')
+
+            if os.path.exists(usage_file_name):
+                if os.access(usage_file_name, os.W_OK):
+                    now = datetime.now()
+                    date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+                    uname = getpass.getuser()
+                    with open(usage_file_name, "a") as myfile:
+                        myfile.write(date_time + ' ' + uname + ' ' + op + '\n')
+    except:
+        pass
+
 def getData(args):
+    update_usage_file("getData")
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
     cachedRunCtimes = json.loads(args.cachedRunCtimes)
