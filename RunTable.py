@@ -17,7 +17,6 @@ class RunTable:
             #pprint( file_name )
             run = json_runs['Runs'][file_name]
             run_data = run['Data']
-            #pprint( run_data )
             #print( 'Data: ' + str(len( str( run['Data'] ))))
             #print( 'Globals: ' +str( len( str( run['Globals'] ))))
 
@@ -76,37 +75,24 @@ class RunTable:
         return '"dictionary":{' + estr[1:] + '}'
 
 
-    # now this takes an array of runs, each run contains a 'Data' object
-    def subset_of_runs_handler(self, runs):
+    def subset_of_runs_handler(self, run_data):
 
+        import json
         compact_runs = {}
 
-        for (run) in runs:
+        #print( "run data:" )
+        #pprint( run_data )
 
-            if isinstance( run, dict ) == 1:
-                # in case of single process direct call.
-                run_data = run['Data']
-            else:
-                run_data = runs[ run ]
+        ret_str = ""
 
-            #pprint( run_data )
+        for (global_data_rk_obj) in run_data:
 
-            for (time_key_original) in run_data:
+            run_key = global_data_rk_obj['rk']
+            global_data_rk_obj.pop('rk', None)
 
-                time_key = time_key_original
-                yaxis_payload = run_data[ time_key_original ]
+            ret_str = ret_str + ',"' + run_key + '":' + json.dumps( global_data_rk_obj )
 
-                for (between_str) in self.between_table:
-
-                    enc = self.between_table[ between_str ]
-                    #print( time_key_original )
-                    time_key = time_key.replace( between_str, enc )
-                    #print( time_key )
-
-                compact_runs[ time_key ] = yaxis_payload
-
-        return self.make_str_from_compact_runs( compact_runs )
-
+        return ret_str[1:]
 
 
     def make_str_from_compact_runs(self, compact_runs):
@@ -121,7 +107,6 @@ class RunTable:
 
             compare_str = compare_str + ',"' + time_key + '":' + payload_str
 
-        #pprint( compare_str)
         return '"values":{' + compare_str[1:] + '}'
 
 
@@ -130,10 +115,10 @@ class RunTable:
         import numpy as np
 
         runs = self.json_runs['Runs']
-        #pprint(runs )
         runs_arr = []
 
         for (i) in runs:
+            runs[i]['rk'] = i
             runs_arr.append( runs[i] )
 
         single_process = 0
@@ -144,17 +129,38 @@ class RunTable:
             return compact_runs
 
         else:
+            #print( "runs_arr: ")
             #pprint( runs_arr )
-            run_subsets = np.array_split( runs_arr, 18 )
-            pool_res = multiprocessing.Pool(18).map( self.subset_of_runs_handler, run_subsets )
+            run_subsets = self.split_workload( runs_arr, 5 )
+            #pprint( run_subsets )
+            #exit()
+            pool_res = multiprocessing.Pool(5).map( self.subset_of_runs_handler, run_subsets )
 
-            pprint( len(pool_res) )
+            #print("Pool results:")
+            #pprint( len(pool_res) )
             #pprint( pool_res )
-            compact_str = pool_res[2]
-            #pprint(pool_res)
-            #print('len=' + str(len(compact_str))) 
-            #pprint( compact_str )
-            return compact_str
+            pool_str = ",".join( pool_res )
+            return '"Data":{' + pool_str + '}'
+
+
+    def split_workload( self, runs_arr, split_count ):
+
+        import numpy as np
+
+        run_subsets = np.array_split( runs_arr, split_count )
+
+        return run_subsets
+
+
+    #  Each pool result just contains the "ad/av/bx": {'yaAxis': 0.002} for it's pool execution
+    def collect_and_render_pool_results( self, pool_res ):
+
+        str_sum = ""
+
+        for (i) in pool_res:
+            str_sum = str_sum + pool_res[i]
+
+        return str_sum
 
 
     def render(self):
@@ -162,6 +168,15 @@ class RunTable:
         table_str = self.make_table_str()
         compare_str = self.make_compare_str()
 
-        return '{' + table_str + ',' + compare_str + '}'
+        json_str = '{' + table_str + ',' + compare_str + '}'
+
+        import json
+        try:
+            json.loads(json_str)
+        except ValueError as error:
+            print("invalid json: %s" % error)
+            return False
+
+        return json_str
 
 

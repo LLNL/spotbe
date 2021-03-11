@@ -385,12 +385,9 @@ def _getAllJsonRuns(filepath, subpaths):
             com = commits[ idx ]
             launchdate = dates[ idx ] 
 
-            runs[the_key] = { 'Globals': { 'launchdate': launchdate
-                                                            , 'commit':  com
-                                                            , 'title': title
-                                                            }
-                                                , 'Data': {}
-                                                }
+            #runs[the_key] = { 'Globals': { 'launchdate': launchdate , 'commit':  com , 'title': title }
+            #                                    , 'Data': {}
+            #                                    }
             #pprint( dates ) 
             #dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
  
@@ -407,7 +404,6 @@ def _getAllJsonRuns(filepath, subpaths):
             #pprint(runs)
 
             for funcpath, values in data.items():
-
 
                 #print( 'for funcpath(' + funcpath + ') values in data.items()' )
                 for value in values:
@@ -428,11 +424,12 @@ def _getAllJsonRuns(filepath, subpaths):
                     #val0 = value[0]
                     #val1 = value[1]
 
-                    rkey = runSetName + '-' + str(val0)
+                    rkey = runSetName + '-' + str(val0 - 1)
 
-                    if rkey in runs: 
+                    #if rkey in runs: 
                         #runs[rkey]['Data']['main'] = {'yAxis': 0}
                         #if val1 > 0.5:
+                    if rkey in runs: 
                         runs[rkey]['Data'][funcpath] = {'yAxis': val1}
          
                     #runs[rkey]['Data']['main'] = {yAxis: 0}
@@ -443,12 +440,12 @@ def _getAllJsonRuns(filepath, subpaths):
             if debugi == 1:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 print('While processing subpath: ' + subpath)
+                pprint(exc_obj)
                 print('the_key=' + str(the_key))
                 print('title=' + title)
                 print('line_no=' + str(exc_tb.tb_lineno) )
                 print('Exception occurred:')
                 print('funcpath=' + funcpath)
-                pprint(exc_obj)
                 pprint(value)
                 pprint( type(value))
                 pprint(values)
@@ -456,7 +453,6 @@ def _getAllJsonRuns(filepath, subpaths):
 
 
 
-    #pprint(runs)
     return { 'Runs': runs
            , 'RunDataMeta': {'yAxis': {'type': 'double'}}
            , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
@@ -553,7 +549,7 @@ def getData(args):
     from pprint import pprint
 
     #pprint( json_output )
-    #exit
+    #exit()
     runt = RunTable( json_output )
     table_text = runt.render()
 
