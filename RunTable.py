@@ -85,7 +85,10 @@ class RunTable:
 
         for (global_data_rk_obj) in run_data:
 
+            # run_key looks like: "generator/3d_ex0"
             run_key = global_data_rk_obj['rk']
+
+            # remove the run key because it was only added to pass the run_key to this function.
             global_data_rk_obj.pop('rk', None)
 
             ret_str = ret_str + ',"' + run_key + '":' + json.dumps( global_data_rk_obj )
