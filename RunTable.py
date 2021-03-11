@@ -106,11 +106,12 @@ class RunTable:
         for (long_generator_str) in Data:
 
             yAxis_payload = Data[long_generator_str]
+            compressed_gen_str = long_generator_str
 
             for (between_str) in self.between_table:
 
                 enc = self.between_table[ between_str ]
-                compressed_gen_str = long_generator_str.replace( between_str, enc )
+                compressed_gen_str = compressed_gen_str.replace( between_str, enc )
 
             dict_compressed_gdr_obj[ compressed_gen_str ] = yAxis_payload
 
