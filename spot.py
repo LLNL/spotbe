@@ -510,8 +510,6 @@ def getData(args):
                 runSpli = fp.split( splitKey )
                 len_el = len(runSpli)
 
-                #print("len = " + str(len_el))
-
                 if 1 < len_el:
                 	runKey = runSpli[1]
                 else:
@@ -554,6 +552,7 @@ def getData(args):
     table_text = runt.render()
 
     print(table_text)
+    pprint(json.loads(table_text))
 
     #pprint( json_output )
     #print(output)

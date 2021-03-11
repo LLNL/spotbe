@@ -88,12 +88,34 @@ class RunTable:
             # run_key looks like: "generator/3d_ex0"
             run_key = global_data_rk_obj['rk']
 
+            self.replace_dictionary_strs( global_data_rk_obj )
+
             # remove the run key because it was only added to pass the run_key to this function.
             global_data_rk_obj.pop('rk', None)
 
             ret_str = ret_str + ',"' + run_key + '":' + json.dumps( global_data_rk_obj )
 
         return ret_str[1:]
+
+
+    def replace_dictionary_strs( self, global_data_rk_obj ):
+
+        compact_runs = {}
+        Data = global_data_rk_obj['Data']
+
+        for (long_generator_str) in Data:
+
+            yAxis_payload = Data[long_generator_str]
+            lgs_original = long_generator_str
+
+            for (between_str) in self.between_table:
+
+                enc = self.between_table[ between_str ]
+                lgs_original = lgs_original.replace( between_str, enc )
+
+        compact_runs[ lgs_original ] = yAxis_payload
+        pprint( compact_runs )
+        return compact_runs
 
 
     def make_str_from_compact_runs(self, compact_runs):
@@ -141,7 +163,7 @@ class RunTable:
             #pprint( len(pool_res) )
             #pprint( pool_res )
             pool_str = ",".join( pool_res )
-            return '"Data":{' + pool_str + '}'
+            return '"Pool":{' + pool_str + '}'
 
 
     def split_workload( self, runs_arr, split_count ):
