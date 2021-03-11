@@ -17,8 +17,6 @@ class RunTable:
             #pprint( file_name )
             run = json_runs['Runs'][file_name]
             run_data = run['Data']
-            #print( 'Data: ' + str(len( str( run['Data'] ))))
-            #print( 'Globals: ' +str( len( str( run['Globals'] ))))
 
             for (time_key) in run_data:
 		
