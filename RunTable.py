@@ -6,10 +6,11 @@ from pprint import pprint
 
 class RunTable:
     
-    def __init__(self, json_runs):
+    def __init__(self, json_runs, poolCount ):
 
         self.json_runs = json_runs       
         self.between_table = {}
+        self.poolCount = int(poolCount)
         self.encoder_index = 0
         self.encoder_lookup = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};:,./<>?`~"
  
@@ -115,7 +116,6 @@ class RunTable:
 
             dict_compressed_gdr_obj[ compressed_gen_str ] = yAxis_payload
 
-        pprint( dict_compressed_gdr_obj )
         return dict_compressed_gdr_obj
 
 
@@ -153,12 +153,10 @@ class RunTable:
             return compact_runs
 
         else:
-            #print( "runs_arr: ")
-            #pprint( runs_arr )
-            run_subsets = self.split_workload( runs_arr, 5 )
+            run_subsets = self.split_workload( runs_arr, self.poolCount )
             #pprint( run_subsets )
             #exit()
-            pool_res = multiprocessing.Pool(5).map( self.subset_of_runs_handler, run_subsets )
+            pool_res = multiprocessing.Pool( self.poolCount ).map( self.subset_of_runs_handler, run_subsets )
 
             #print("Pool results:")
             #pprint( len(pool_res) )

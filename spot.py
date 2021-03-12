@@ -483,6 +483,7 @@ def memoryGraph(args):
 def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
+    poolCount = args.poolCount or "18"
     cachedRunCtimes = json.loads(args.cachedRunCtimes)
         # {subpath: cachedCtime}
 
@@ -548,11 +549,11 @@ def getData(args):
 
     #pprint( json_output )
     #exit()
-    runt = RunTable( json_output )
+    runt = RunTable( json_output, poolCount )
     table_text = runt.render()
 
     print(table_text)
-    pprint(json.loads(table_text))
+    #pprint(json.loads(table_text))
 
     #pprint( json_output )
     #print(output)
@@ -639,6 +640,7 @@ if __name__ == "__main__":
     getData_sub = subparsers.add_parser("getData")
     getData_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
     getData_sub.add_argument("cachedRunCtimes",  help="list of subpaths with timestamps")
+    getData_sub.add_argument("--poolCount",  help="specify number of pools to use")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
 
