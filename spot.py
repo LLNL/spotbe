@@ -541,7 +541,10 @@ def getData(args):
 
                 if fname.endswith('.cali'):
                     runCtimes[runKey] = newCtime
-                    if newCtime > cachedRunCtimes.get(runKey, 0):
+                    cachedCtime = cachedRunCtimes.get(runKey, 0)
+                    #print("runCtime=" + str(newCtime) + "  cachedCtime="+str(cachedCtime))
+
+                    if newCtime > cachedCtime:
                         newRuns.append(runKey)
 
                 if fname.endswith('.json'):
