@@ -315,7 +315,10 @@ def _getAllCaliRuns(filepath, subpaths):
             if funcpath:
                 runData[funcpath] = record
         for metricName in list(runData.items())[0][1]:
-            runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
+            runDataMeta[metricName] = {
+                'type': run['attributes'][metricName]["cali.attribute.type"]
+                , 'alias': run['attributes'][metricName].get("attribute.alias")
+            }
 
         # get runGlobals and runGlobalMeta
         for (global_, val) in run['globals'].items():
