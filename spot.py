@@ -111,6 +111,8 @@ def get_jupyter_info():
 
 def multi_jupyter(args):
 
+    update_usage_file("multi_jupyter")
+
     # create notebook in ~/spot_jupyter dir
 
     #  - first create directory
@@ -191,6 +193,8 @@ def multi_jupyter(args):
             print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
 def jupyter(args):
+
+    update_usage_file("jupyter")
 
     # create notebook in ~/spot_jupyter dir
 
