@@ -13,6 +13,10 @@ class RunTable:
         self.poolCount = int(poolCount)
         self.encoder_index = 0
         self.encoder_lookup = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()-=_+[]{};:,./<>?`~"
+
+        if 'Runs' not in json_runs:
+            print("I can not find Runs.  Are these cali files?  I'm expecting json files.")
+            exit()
  
         for (file_name) in json_runs['Runs']:
             #pprint( file_name )
