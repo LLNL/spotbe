@@ -544,15 +544,19 @@ def getData(args):
         output['runCtimes'] = runCtimes
         output['testingX'] = "3"
 
+
     from RunTable import RunTable
     from pprint import pprint
 
-    #pprint( json_output )
-    #exit()
     runt = RunTable( json_output, poolCount )
-    table_text = runt.render()
+    table_text = runt.make_table_str()
+    pool_text = runt.make_pool_str()
 
-    print(table_text)
+    pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + '}'
+    print(pri_str)
+
+   
+ 
     #pprint(json.loads(table_text))
 
     #pprint( json_output )

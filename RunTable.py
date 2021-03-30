@@ -97,8 +97,9 @@ class RunTable:
             global_data_rk_obj.pop('rk', None)
 
             dict_compressed_gdr_obj = self.replace_dictionary_strs( global_data_rk_obj )
+            globals0 = json.dumps(global_data_rk_obj['Globals']);
 
-            ret_str = ret_str + ',"' + run_key + '":' + json.dumps( dict_compressed_gdr_obj )
+            ret_str = ret_str + ',"' + run_key + '":{"Data":' + json.dumps( dict_compressed_gdr_obj )  + ', "Globals":' + globals0 + '}'
 
         return ret_str[1:]
 
@@ -138,7 +139,7 @@ class RunTable:
         return '"values":{' + compare_str[1:] + '}'
 
 
-    def make_compare_str(self):
+    def make_pool_str(self):
 
         import numpy as np
 
@@ -166,7 +167,8 @@ class RunTable:
             #pprint( len(pool_res) )
             #pprint( pool_res )
             pool_str = ",".join( pool_res )
-            return '"Pool":{' + pool_str + '}'
+            compare_str = '"Runs":{' + pool_str + '}'
+            return compare_str
 
 
     def split_workload( self, runs_arr, split_count ):
@@ -192,7 +194,7 @@ class RunTable:
     def render(self):
 
         table_str = self.make_table_str()
-        compare_str = self.make_compare_str()
+        pool_str = self.make_pool_str()
 
         json_str = '{' + table_str + ',' + compare_str + '}'
 
