@@ -484,6 +484,7 @@ def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
     poolCount = args.poolCount or "18"
+    writeToFile = args.writeToFile or 0
     cachedRunCtimes = json.loads(args.cachedRunCtimes)
         # {subpath: cachedCtime}
 
@@ -553,7 +554,15 @@ def getData(args):
     pool_text = runt.make_pool_str()
 
     pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + '}'
-    print(pri_str)
+
+    if writeToFile:
+       filename = "cacheToFE.json"
+       f = open( dataSetKey + "/" + filename, "a" )
+       f.write( pri_str )
+       f.close() 
+
+    else:
+       print(pri_str)
 
    
  
@@ -645,6 +654,7 @@ if __name__ == "__main__":
     getData_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
     getData_sub.add_argument("cachedRunCtimes",  help="list of subpaths with timestamps")
     getData_sub.add_argument("--poolCount",  help="specify number of pools to use")
+    getData_sub.add_argument("--writeToFile",  help="specify number of pools to use")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
 
