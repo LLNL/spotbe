@@ -499,7 +499,7 @@ def getData(args):
         return 1
 
     except IOError:
-        print("File " + cachePath + " does not exists")
+        a=0  #print("File " + cachePath + " does not exists")
 
 
     output = {}
@@ -557,7 +557,8 @@ def getData(args):
 
         output['deletedRuns'] = list(deletedRuns)
         output['runCtimes'] = runCtimes
-        output['testingX'] = "3"
+        # impact whether or not to show jupyter button.
+        output['is_ale3d'] = "1"
 
 
     from RunTable import RunTable
