@@ -487,6 +487,20 @@ def getData(args):
     writeToFile = args.writeToFile or 0
     cachedRunCtimes = json.loads(args.cachedRunCtimes)
         # {subpath: cachedCtime}
+    cacheFilename = "cacheToFE.json"
+    cachePath = dataSetKey + cacheFilename
+
+
+    try:
+        f = open( cachePath )
+        allJSON = f.read()
+        print(allJSON)
+        f.close()
+        return 1
+
+    except IOError:
+        print("File " + cachePath + " does not exists")
+
 
     output = {}
 
@@ -556,8 +570,7 @@ def getData(args):
     pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + '}'
 
     if writeToFile:
-       filename = "cacheToFE.json"
-       f = open( dataSetKey + "/" + filename, "a" )
+       f = open( cachePath, "a" )
        f.write( pri_str )
        f.close() 
 
