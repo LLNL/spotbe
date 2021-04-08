@@ -31,6 +31,8 @@ CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
          , 'jupyter_port': 0
          , 'jupyter_host': ''
+         , 'jupyter_lookup_host': False
+         , 'jupyter_base_url': ''
          , 'jupyter_use_token': True
          , 'jupyter_token': ''
          , 'usage_logging_dir': '/usr/gapps/spot/logs'
@@ -78,9 +80,11 @@ def get_jupyter_info():
     host = CONFIG['jupyter_host']
     use_token = CONFIG['jupyter_use_token']
     token = CONFIG['jupyter_token']
+    lookup_jupyter = CONFIG['jupyter_lookup_host']
+    jupyter_base = CONFIG['jupyter_base_url']
 
     jdict = {}
-    if (use_token and not token) or (port == 0):
+    if (use_token and not token) or (port == 0 and not lookup_jupyter):
         path = os.getenv("JUPYTERSERVER")
         if not path or not os.access(path, os.R_OK):
             dir = subprocess.check_output(["/opt/conda/bin/jupyter", "--runtime-dir"]).decode("utf8").rstrip()
@@ -101,12 +105,16 @@ def get_jupyter_info():
             resultdict["token"] = jdict["token"]
         else:
             resultdict["token"] = token
-    if port == 0:
-        resultdict["port"] = jdict["port"]
-    else:
-        resultdict["port"] = port
-    if host:
-        resultdict["server"] = host
+
+    if not lookup_jupyter:
+        if port == 0:
+            resultdict["port"] = jdict["port"]
+        else:
+            resultdict["port"] = port
+        if host:
+            resultdict["server"] = host
+    if jupyter_base:
+        resultdict["base"] = jupyter_base
     return resultdict
 
 def multi_jupyter(args):
