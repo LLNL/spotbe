@@ -2,6 +2,7 @@
 
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
+import base64, hashlib
 
 from datetime import datetime
 
@@ -35,6 +36,7 @@ CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'jupyter_base_url': ''
          , 'jupyter_use_token': True
          , 'jupyter_token': ''
+         , 'use_jupyterhub': True
          , 'usage_logging_dir': '/usr/gapps/spot/logs'
          }
 
@@ -82,6 +84,7 @@ def get_jupyter_info():
     token = CONFIG['jupyter_token']
     lookup_jupyter = CONFIG['jupyter_lookup_host']
     jupyter_base = CONFIG['jupyter_base_url']
+    use_jupyterhub = CONFIG['use_jupyterhub']
 
     jdict = {}
     if (use_token and not token) or (port == 0 and not lookup_jupyter):
@@ -142,10 +145,14 @@ def multi_jupyter(args):
                                 .replace('DEPLOY_DIR', '/usr/gapps/spot/')
                             )
 
-        os.makedirs('/notebooks',exist_ok=True)
-
-        fullpath = '/notebooks/combo.ipynb'
-        open(fullpath, 'w').write(ntbk_template_str)
+        name_md5 = hashlib.md5(json.dumps(multi_cali_files, sort_keys=True).encode('utf-8')).digest()
+        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
+        fullpath = '/notebooks/spot/m{}.ipynb'.format(name)
+        try:
+            os.umask(0o133)
+            open(fullpath, 'w').write(ntbk_template_str)
+        except:
+            pass
 
         jsonret = get_jupyter_info()
         jsonret["path"] = fullpath
@@ -212,17 +219,22 @@ def jupyter(args):
 
     if isContainer:
         metric_name = defaultKey(str(cali_path))
-        subextension = cali_path[:cali_path.rfind(".")] + '.ipynb'
-        ntbk_fullpath = os.path.normpath(os.path.join('/notebooks', *subextension.split(os.sep)))
-        (ntbk_path, ntbk_name) = os.path.split(ntbk_fullpath)
 
+        unique_name = cali_path + ':' + metric_name
+        name_md5 = hashlib.md5(unique_name.encode('utf-8')).digest()
+        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
+        ntbk_fullpath = '/notebooks/spot/s{}.ipynb'.format(name)
+        
         ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
         ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
 
-        os.makedirs(ntbk_path,exist_ok=True)
-        open(ntbk_fullpath, 'w').write(ntbk_template_str)
-
+        try:
+            os.umask(0o133)
+            open(ntbk_fullpath, 'w').write(ntbk_template_str)
+        except:
+            pass
+        
         jsonret = get_jupyter_info()
         jsonret["path"] = ntbk_fullpath
         print(json.dumps(jsonret))
