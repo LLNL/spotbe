@@ -480,6 +480,34 @@ def memoryGraph(args):
     json.dump(output, sys.stdout, indent=4)
 
 
+def getCacheFileDate(args):
+
+    import os
+
+    cali_filepath = args.cali_filepath
+
+    filename = cali_filepath + '/cacheToFE.json'
+    output = {} 
+    mtime = 1
+
+    try:
+        statbuf = os.stat( filename )
+        mtime = statbuf.st_mtime
+    except:
+
+        from pprint import pprint
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+
+        #print('line_no=' + str(exc_tb.tb_lineno) )
+        #pprint(exc_obj)
+        #print()
+
+        
+    output['mtime'] = mtime
+
+    json.dump(output, sys.stdout, indent=4)
+
+
 def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
@@ -658,6 +686,10 @@ if __name__ == "__main__":
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     jupyter_sub.set_defaults(func=jupyter)
+
+    getCacheFileDate_sub = subparsers.add_parser("getCacheFileDate")
+    getCacheFileDate_sub.set_defaults(func=getCacheFileDate)
+    getCacheFileDate_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
 
     multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
     multi_jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
