@@ -489,7 +489,7 @@ def getCacheFileDate(args):
 
     filename = cali_filepath + '/cacheToFE.json'
     output = {} 
-    mtime = 1
+    mtime = 2000400500
 
     try:
         statbuf = os.stat( filename )
@@ -589,6 +589,11 @@ def getData(args):
         # impact whether or not to show jupyter button.
         output['is_ale3d'] = "1"
 
+
+    if 'Runs' not in json_output:
+        jstr = json.dumps(output)
+        print(jstr)
+        return 0
 
     from RunTable import RunTable
     from pprint import pprint
