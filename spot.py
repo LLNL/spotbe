@@ -350,7 +350,8 @@ def _getAllJsonRuns(filepath, subpaths):
         from pprint import pprint
 
         try:
-            data = json.load(open(os.path.join(filepath, subpath)))
+            whole_path = os.path.join( filepath, subpath )
+            data = json.load(open(whole_path))
             commits = data.pop('commits')
             title = data.pop('title')
             yAxis = data.pop('yAxis')
@@ -436,7 +437,7 @@ def _getAllJsonRuns(filepath, subpaths):
                     #runs[rkey]['Data'][funcpath] = {'yAxis': val1}
 
         except:
-            debugi = 1 
+            debugi = 0
             if debugi == 1:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 print('While processing subpath: ' + subpath)
