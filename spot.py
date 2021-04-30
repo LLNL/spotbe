@@ -581,11 +581,22 @@ def getData(args):
         if newRuns:
             cali_output = _getAllCaliRuns(dataSetKey, newRuns)
 
-        Merge( json_output, output )
-        Merge( cali_output, output )
+        from pprint import pprint
+
+        #pprint(json_output)
+        found = 'Found ' + str(len(json_output['Runs'].keys())) + ' runs in JSON format.  '
+        found += 'Found ' + str(len(cali_output['Runs'].keys())) + ' runs in cali format.  '
+
+        merge( json_output, output )
+        found += 'Total runs afer adding JSON runs: ' + str(len(output['Runs'].keys())) + '.  '
+
+        merge( cali_output, output )
+        found += 'Total runs afer adding cali runs: ' + str(len(output['Runs'].keys())) + '.  '
+
 
         output['deletedRuns'] = list(deletedRuns)
         output['runCtimes'] = runCtimes
+        output['foundReport'] = found
         # impact whether or not to show jupyter button.
         output['is_ale3d'] = "1"
 
@@ -596,13 +607,12 @@ def getData(args):
         return 0
 
     from RunTable import RunTable
-    from pprint import pprint
 
     runt = RunTable( json_output, poolCount )
     table_text = runt.make_table_str()
     pool_text = runt.make_pool_str()
 
-    pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + '}'
+    pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
 
     if writeToFile:
        f = open( cachePath, "a" )
@@ -612,8 +622,6 @@ def getData(args):
     else:
        print(pri_str)
 
-   
- 
     #pprint(json.loads(table_text))
 
     #pprint( json_output )
@@ -624,9 +632,25 @@ def getData(args):
     #print(jstr)
 
 
-# Python code to merge dict using update() method
-def Merge(dict1, dict2):
-    return(dict2.update(dict1))
+
+def merge(source, destination):
+    """
+    run me with nosetests --with-doctest file.py
+
+    >>> a = { 'first' : { 'all_rows' : { 'pass' : 'dog', 'number' : '1' } } }
+    >>> b = { 'first' : { 'all_rows' : { 'fail' : 'cat', 'number' : '5' } } }
+    >>> merge(b, a) == { 'first' : { 'all_rows' : { 'pass' : 'dog', 'fail' : 'cat', 'number' : '5' } } }
+    True
+    """
+    for key, value in source.items():
+        if isinstance(value, dict):
+            # get node or create one
+            node = destination.setdefault(key, {})
+            merge(value, node)
+        else:
+            destination[key] = value
+
+    return destination
 
 
 def getRun(runId, db=None):

@@ -146,6 +146,7 @@ class RunTable:
         runs = self.json_runs['Runs']
         runs_arr = []
 
+        #print("make_pool_str processing {} runs".format(len(runs)))
         for (i) in runs:
             runs[i]['rk'] = i
             runs_arr.append( runs[i] )
