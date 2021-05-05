@@ -601,14 +601,14 @@ def getData(args):
         output['is_ale3d'] = "1"
 
 
-    if 'Runs' not in json_output:
-        jstr = json.dumps(output)
-        print(jstr)
-        return 0
+    #if 'Runs' not in json_output:
+    #    jstr = json.dumps(output)
+    #    print(jstr)
+    #    return 0
 
     from RunTable import RunTable
 
-    runt = RunTable( json_output, poolCount )
+    runt = RunTable( output, poolCount )
     table_text = runt.make_table_str()
     pool_text = runt.make_pool_str()
 
