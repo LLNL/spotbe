@@ -583,6 +583,9 @@ def getData(args):
 
         from pprint import pprint
 
+        if 'Runs' not in json_output:
+            json_output['Runs'] = {} 
+        
         #pprint(json_output)
         found = 'Found ' + str(len(json_output['Runs'].keys())) + ' runs in JSON format.  '
         found += 'Found ' + str(len(cali_output['Runs'].keys())) + ' runs in cali format.  '
