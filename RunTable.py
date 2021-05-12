@@ -192,6 +192,16 @@ class RunTable:
         return str_sum
 
 
+    def write_dictionary_to_file( self, path ):
+
+       table_str = self.make_table_str()
+       filename = path + "/dictionary.json"
+
+       f = open( filename, "w" )
+       f.write( '{' + table_str + '}' )
+       f.close()
+
+
     def render(self):
 
         table_str = self.make_table_str()
