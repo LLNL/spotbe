@@ -509,6 +509,21 @@ def getCacheFileDate(args):
     json.dump(output, sys.stdout, indent=4)
 
 
+def getDictionary(args):
+    dataSetKey = args.dataSetKey
+
+    filename = dataSetKey + "/dictionary.json"
+
+    try:
+       f = open( filename )
+       allJSON = f.read()
+       f.close()
+       print( allJSON )
+
+    except IOError:
+       print( "could not get dictionary file." )
+
+
 def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
@@ -746,6 +761,10 @@ if __name__ == "__main__":
     getRun_sub.add_argument("runId",  help="filepath or db run number")
     getRun_sub.add_argument("--db",  help="yaml config file, or sqlite DB")
     getRun_sub.set_defaults(func=lambda args: json.dump(getRun(args.runId, args.db), sys.stdout, indent=4))
+
+    getDictionary_sub = subparsers.add_parser("getDictionary")
+    getDictionary_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
+    getDictionary_sub.set_defaults(func=getDictionary)
 
     args = parser.parse_args()
     if args.config:
