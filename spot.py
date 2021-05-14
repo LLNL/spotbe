@@ -398,6 +398,7 @@ def _getAllJsonRuns(filepath, subpaths):
                 runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
                                                             , 'commit': commits[i]
                                                             , 'title': title
+                                                            , 'json':"1"
                                                             }
                                                 , 'Data': {}
                                                 }
