@@ -525,6 +525,13 @@ def getDictionary(args):
        print( "could not get dictionary file." )
 
 
+def returnErr( is_err, err_str ):
+    
+    if is_err:
+        print("ERROR: " + err_str)
+        exit()
+ 
+
 def getData(args):
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
@@ -561,6 +568,12 @@ def getData(args):
         newRuns = []
         jsonSubpaths = []
         runCtimes = {}
+
+        import os
+        exi = os.path.exists(dataSetKey)
+
+        returnErr( not exi, 'Could not access directory: ' + dataSetKey)
+
         for (dirpath, dirnames, filenames) in os.walk(dataSetKey):
             for fname in filenames:
                 fp = os.path.join(dirpath, fname)
@@ -574,8 +587,7 @@ def getData(args):
                 if 1 < len_el:
                 	runKey = runSpli[1]
                 else:
-                        print( "I cannot split this filename: " + fp + " with splitKey = " + splitKey )
-                        exit()
+                        returnErr( 1, "I cannot split this filename: " + fp + " with splitKey = " + splitKey )
 
                 if fname.endswith('.cali'):
                     runCtimes[runKey] = newCtime
