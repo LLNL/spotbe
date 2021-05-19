@@ -548,6 +548,7 @@ def getData(args):
            allJSON = f.read()
            print(allJSON)
            f.close()
+           return 1
 
        except IOError:
            a=0  #print("File " + cachePath + " does not exists")
