@@ -15,6 +15,11 @@ def split_spot1_file( input_dir, input_filename, output_dir_root, verbose):
         with open(input_filename_fullpath, "r") as infile:
             source_dict = json.load(infile)
 
+        if not 'XTics' in source_dict:
+            if verbose > 1:
+                print("Skipping non-spot1 file: {}".format(input_filename_fullpath))
+            return
+
         idx = 0
         logged_once = False
         for date in source_dict['XTics']:
@@ -40,11 +45,14 @@ def split_spot1_file( input_dir, input_filename, output_dir_root, verbose):
             dest_dict["xAxis"] = source_dict["xAxis"]
             dest_dict["yAxis"] = source_dict["yAxis"]
             dest_dict["series"] = source_dict["series"]
+            dest_dict["XTics"] = [date]
+            dest_dict["commits"] = [ source_dict["commits"][idx] ]
+            dest_dict["metadata"] = [ source_dict["metadata"][idx] ]
 
             for series_name in source_dict["series"]:
                 try:
                     if idx < len(source_dict[series_name]):
-                        dest_dict[series_name] = source_dict[series_name][idx]
+                        dest_dict[series_name] = [ source_dict[series_name][idx] ]
                     else:
                         if not logged_once:
                             logged_once = True
@@ -96,4 +104,8 @@ if __name__ == "__main__":
     parser.add_argument("output_dir_root", help="path to directory that will contain discrete spot1 files")
     args = parser.parse_args()
 
-    split_spot1_files( args.input_dir, args.output_dir_root, args.verbose )
+    verbose = 0
+    if args.verbose:
+        verbose = args.verbose
+
+    split_spot1_files( args.input_dir, args.output_dir_root, verbose )
