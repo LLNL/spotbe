@@ -639,6 +639,11 @@ def getData(args):
     #    print(jstr)
     #    return 0
 
+
+    # old way
+    #jstr = json.dumps(output)
+    #pri_str = jstr
+
     from RunTable import RunTable
 
     runt = RunTable( output, poolCount )
@@ -646,12 +651,11 @@ def getData(args):
     pool_text = runt.make_pool_str()
 
     pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
-
     runt.write_dictionary_to_file( dataSetKey )
 
     if writeToFile == '1':
        print('wrote file to: ' + cachePath)
-       f = open( cachePath, "a" )
+       f = open( cachePath, "w" )
        f.write( pri_str )
        f.close() 
 
