@@ -540,18 +540,17 @@ def getData(args):
     cachedRunCtimes = json.loads(args.cachedRunCtimes)
         # {subpath: cachedCtime}
     cacheFilename = "cacheToFE.json"
-    cachePath = dataSetKey + cacheFilename
+    cachePath = dataSetKey + '/' + cacheFilename
 
+    if not writeToFile:
+       try:
+           f = open( cachePath )
+           allJSON = f.read()
+           print(allJSON)
+           f.close()
 
-    try:
-        f = open( cachePath )
-        allJSON = f.read()
-        print(allJSON)
-        f.close()
-        return 1
-
-    except IOError:
-        a=0  #print("File " + cachePath + " does not exists")
+       except IOError:
+           a=0  #print("File " + cachePath + " does not exists")
 
 
     output = {}
@@ -650,7 +649,8 @@ def getData(args):
 
     runt.write_dictionary_to_file( dataSetKey )
 
-    if writeToFile:
+    if writeToFile == '1':
+       print('wrote file to: ' + cachePath)
        f = open( cachePath, "a" )
        f.write( pri_str )
        f.close() 
