@@ -1,6 +1,7 @@
 
 import math
 import multiprocessing
+import numpy
 
 from pprint import pprint
 
