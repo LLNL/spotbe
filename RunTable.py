@@ -1,7 +1,7 @@
 
 import math
 import multiprocessing
-import numpy
+import numpy as np
 
 from pprint import pprint
 
@@ -141,8 +141,6 @@ class RunTable:
 
 
     def make_pool_str(self):
-
-        import numpy as np
 
         runs = self.json_runs['Runs']
         runs_arr = []
