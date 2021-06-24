@@ -403,21 +403,19 @@ def _getAllJsonRuns(filepath, subpaths):
                                                 , 'Data': {}
                                                 }
 
-            #pprint(runs)
+            #pprint(values)
 
             for funcpath, values in data.items():
 
+                #pprint(values)
                 #print( 'for funcpath(' + funcpath + ') values in data.items()' )
+                val0 = 1
+
                 for value in values:
 
-                    #launchdate = dates[ idx2 ]
-                    #idx2=idx2 + 1
-                    #suffix = value[0] if value[0] else i
-                    #loopKey = runSetName + '-' + str(suffix)
-
-                    val0 = 0
-                    if type(value) is list:
-                         val0 = value[0]
+                    #val0 = 0
+                    #if type(value) is list:
+                    #     val0 = value[0]
                 
                     val1 = 0 
                     if type(value) is list:
@@ -427,11 +425,15 @@ def _getAllJsonRuns(filepath, subpaths):
                     #val1 = value[1]
 
                     rkey = runSetName + '-' + str(val0 - 1)
-
+                    val0 = val0 + 1
+                    #pprint( type(value))
+                    #pprint( rkey )
+                    #pprint( runs )
                     #if rkey in runs: 
                         #runs[rkey]['Data']['main'] = {'yAxis': 0}
                         #if val1 > 0.5:
-                    if rkey in runs: 
+                    if rkey in runs:
+                        #pprint( "is inside" )
                         runs[rkey]['Data'][funcpath] = {'yAxis': val1}
          
                     #runs[rkey]['Data']['main'] = {yAxis: 0}
@@ -467,12 +469,18 @@ def memoryGraph(args):
 
     cali_path = args.cali_filepath
 
+    #print(cali_path)
+    #exit()
     #dd = get_deploy_dir()
     #opdat = open( dd + '/templates/lo.json').read()
 
     #filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
     filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4b.cali"
-    series = _cali_timeseries_to_json( cali_path )
+    try:
+        series = _cali_timeseries_to_json( cali_path )
+    except:
+        a=1
+
 
     output = {}
     #output['std'] = opdat
