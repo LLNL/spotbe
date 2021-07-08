@@ -1,10 +1,12 @@
-#!/usr/gapps/spot/venv_python/bin/python3
+#!/usr/bin/env python3
 
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
 from pprint import pprint
 
 from datetime import datetime
+
+from spotdb.sinadb import SpotSinaDB
 
 def get_deploy_dir():
     is_live = 1
@@ -633,6 +635,14 @@ def returnErr( is_err, err_str ):
         exit()
  
 
+def _get_sina_data(database, lastRead):
+    sdb = SpotSinaDB(database)
+
+    return { 'Runs': sdb.get_run_data(lastRead),
+             'RunDataMeta': sdb.get_metric_metadata(),
+             'RunGlobalMeta': sdb.get_global_metadata()
+        }
+
 def getData(args):
 
     from pprint import pprint
@@ -665,7 +675,8 @@ def getData(args):
 
     # sql database
     if dataSetKey.endswith(('.yaml', '.sqlite')):
-        output = _getAllDatabaseRuns(dataSetKey, lastRead)
+        # output = _getAllDatabaseRuns(dataSetKey, lastRead)
+        output = _get_sina_data(dataSetKey, lastRead)
 
     # file directory
     else:
