@@ -43,9 +43,9 @@ def _update_attribute_records(ds, globals, attributes):
     metrics = []
 
     if "spot.metrics" in globals:
-        metrics.extend(globals["spot.metrics"].split(","))
+        metrics.extend(filter(lambda m : len(m) > 0, globals["spot.metrics"].split(",")))
     if "spot.timeseries.metrics" in globals:
-        metrics.extend(globals["spot.timeseries.metrics"].split(","))
+        metrics.extend(filter(lambda m : len(m) > 0, globals["spot.timeseries.metrics"].split(",")))
 
     for name in metrics:
         _update_record(name, "caliper_metric_attribute", attributes[name])
