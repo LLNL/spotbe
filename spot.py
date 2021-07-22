@@ -117,6 +117,12 @@ def multi_jupyter(args):
     cali_path = args.cali_filepath
     cali_keys = json.loads(args.cali_keys)
     isContainer = args.container
+    custom_template = args.custom_template
+
+    template_to_open = CONFIG['multi_template_notebook']
+
+    if custom_template:
+        template_to_open = custom_template
 
     if isContainer:
         multi_cali_files = [{ 'cali_file'  : os.path.join(cali_path, cali_key)
@@ -125,7 +131,7 @@ def multi_jupyter(args):
                               for cali_key in cali_keys
                            ]
 
-        ntbk_template_str = (open(CONFIG['multi_template_notebook']).read()
+        ntbk_template_str = (open(template_to_open).read()
                                 .replace('MUTLI_CALI_FILES', '"CALI_FILES = {}\\n"'.format(json.dumps(multi_cali_files, indent=2).replace('"', '\\"').replace('\n','\\n')))
                                 .replace('CALI_METRIC_NAME', multi_cali_files[0]['metric_name'])
                                 .replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
@@ -171,7 +177,7 @@ def multi_jupyter(args):
         line_strs = line_strs + '\\n]\\n"'
 
         ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
-        ntbk_template_str = open(CONFIG['multi_template_notebook']).read()
+        ntbk_template_str = open(template_to_open).read()
         ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', line_strs )
         ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', str(first_metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
@@ -782,6 +788,7 @@ if __name__ == "__main__":
     multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
     multi_jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     multi_jupyter_sub.add_argument("cali_keys", help="cali filenames used to construct the multi jupyter")
+    multi_jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
     multi_jupyter_sub.set_defaults(func=multi_jupyter)
 
     getData_sub = subparsers.add_parser("getData")
