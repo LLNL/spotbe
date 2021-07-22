@@ -9,7 +9,6 @@ from uuid import uuid4
 from sina.datastore import create_datastore
 from sina.model import Record
 
-# import caliperreader as cr
 
 def _get_json_from_cali_with_caliquery(filename):
     cmd = [ 'cali-query', '-q', 'format json(object)', filename ]
@@ -22,13 +21,39 @@ def _get_json_from_cali_with_caliquery(filename):
     return json.loads(cmdout)
 
 
-# def _get_json_from_cali(filename):
-#     r = cr.CaliperReader()
-#     r.read(filename)
+def _get_json_from_cali(filename):
+    from caliperreader import CaliperReader
 
-#     attrs = { k : r.attribute(k) for k in r.attributes() }
+    r = CaliperReader()
+    r.read(filename)
 
-#     return { "attributes": attrs, "globals": r.globals, "records": r.records }
+    # disregard base attributes because they cause issues with a.metadata()
+    keys = list(r.attributes())
+    keys.remove("cali.attribute.name")
+    keys.remove("cali.attribute.type")
+    keys.remove("cali.attribute.prop")
+
+    # convert caliperreader output to Spot format
+    atmp = { k : r.attribute(k).metadata() for k in keys }
+    attr = {}
+
+    for k, v in atmp.items():
+        typeval = v.pop("cali.attribute.type")
+        v["cali.attribute.type"] = typeval[1]
+        attr[k] = v
+
+    recs = []
+
+    for rec in r.records:
+        out = {}
+        for k, v in rec.items():
+            if isinstance(v, list):
+                out[k] = '/'.join(v)
+            else:
+                out[k] = v
+        recs.append(out)
+
+    return { "attributes": attr, "globals": r.globals, "records": recs }
 
 
 def _update_attribute_records(ds, globals, attributes):
@@ -58,7 +83,7 @@ def _add(dbfile, files):
     ds = create_datastore(dbfile)
 
     for califile in files:
-        obj = _get_json_from_cali_with_caliquery(califile)
+        obj = _get_json_from_cali(califile)
         keys = obj.keys()
 
         if 'globals' not in keys or 'records' not in keys:
