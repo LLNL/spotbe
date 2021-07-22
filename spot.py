@@ -197,6 +197,7 @@ def jupyter(args):
     #  - first create directory
     cali_path = args.cali_filepath
     isContainer = args.container
+    custom_template = args.custom_template
 
     if isContainer:
         metric_name = defaultKey(str(cali_path))
@@ -223,9 +224,14 @@ def jupyter(args):
 
         metric_name = defaultKey(str(cali_path))
 
+        template_to_open = CONFIG['template_notebook']
+
+        if custom_template:
+             template_to_open = custom_template
+
         ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+        ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
         
         dd = get_deploy_dir()
@@ -766,6 +772,7 @@ if __name__ == "__main__":
 
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
     jupyter_sub.set_defaults(func=jupyter)
 
     getCacheFileDate_sub = subparsers.add_parser("getCacheFileDate")
