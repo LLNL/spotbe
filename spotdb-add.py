@@ -21,6 +21,34 @@ def _get_json_from_cali_with_caliquery(filename):
     return json.loads(cmdout)
 
 
+def _make_string_from_list(list_or_elem):
+    if isinstance(list_or_elem, list):
+        return '/'.join(list_or_elem)
+    else:
+        return list_or_elem
+
+
+def _filter_cali_profile_record(reader, record):
+    """ Filter useful data out of the profiling records
+    """
+
+    channel = record.get("spot.channel", "regionprofile")
+    out = { "spot.channel" : channel }
+
+    if channel == "regionprofile":
+        out["path"] = _make_string_from_list(record.pop("path", ""))
+
+        # only include metrics
+        for k, v in record.items():
+            if reader.attribute(k).is_value():
+                out[k] = v
+    else:
+        for k, v in record.items():
+            out[k] = _make_string_from_list(v)
+
+    return out
+
+
 def _get_json_from_cali(filename):
     from caliperreader import CaliperReader
 
@@ -34,24 +62,8 @@ def _get_json_from_cali(filename):
     keys.remove("cali.attribute.prop")
 
     # convert caliperreader output to Spot format
-    atmp = { k : r.attribute(k).metadata() for k in keys }
-    attr = {}
-
-    for k, v in atmp.items():
-        typeval = v.pop("cali.attribute.type")
-        v["cali.attribute.type"] = typeval[1]
-        attr[k] = v
-
-    recs = []
-
-    for rec in r.records:
-        out = {}
-        for k, v in rec.items():
-            if isinstance(v, list):
-                out[k] = '/'.join(v)
-            else:
-                out[k] = v
-        recs.append(out)
+    attr = { k : r.attribute(k).metadata()       for k   in keys      }
+    recs = [ _filter_cali_profile_record(r, rec) for rec in r.records ]
 
     return { "attributes": attr, "globals": r.globals, "records": recs }
 
@@ -101,7 +113,7 @@ def _add(dbfile, files):
             if name.startswith("cali.") or name.startswith("spot."):
                 continue
 
-            type = obj["attributes"][name]["cali.attribute.type"]
+            type = obj["attributes"][name]["type"]
 
             if type == "int" or type == "uint":
                 value = int(value)
@@ -127,6 +139,7 @@ def _add(dbfile, files):
             channel_data[channel].append(entry)
 
         rec.user_defined = channel_data
+        rec.add_file(califile, tags=[ "caliper" ])
 
         ds.records.insert(rec)
 

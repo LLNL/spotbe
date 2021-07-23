@@ -74,7 +74,7 @@ class SpotSinaDB:
         result = {}
 
         for rec in records:
-            data = { 'type': rec.data['cali.attribute.type']['value'] }
+            data = { 'type': rec.data['type']['value'] }
 
             if 'attribute.alias' in rec.data:
                 data['alias'] = rec.data['attribute.alias']['value']
