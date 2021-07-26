@@ -109,11 +109,12 @@ def get_jupyter_info():
         resultdict["server"] = host
     return resultdict
 
+
 def getTemplates(args):
     from CustomTemplates import CustomTemplates
 
     ct = CustomTemplates()
-    templates = ct.get()
+    templates = ct.get( args.cali_filepath )
     return templates
 
 
@@ -785,6 +786,7 @@ if __name__ == "__main__":
     memory_sub.set_defaults(func=memoryGraph)
 
     getTemplates_sub = subparsers.add_parser("getTemplates")
+    getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     getTemplates_sub.set_defaults(func=getTemplates)
 
     jupyter_sub = subparsers.add_parser("jupyter")
