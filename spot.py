@@ -109,6 +109,14 @@ def get_jupyter_info():
         resultdict["server"] = host
     return resultdict
 
+def getTemplates(args):
+    from CustomTemplates import CustomTemplates
+
+    ct = CustomTemplates()
+    templates = ct.get()
+    return templates
+
+
 def multi_jupyter(args):
 
     # create notebook in ~/spot_jupyter dir
@@ -775,6 +783,9 @@ if __name__ == "__main__":
     memory_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     #memory_sub.add_argument("count", help="enter memory count")
     memory_sub.set_defaults(func=memoryGraph)
+
+    getTemplates_sub = subparsers.add_parser("getTemplates")
+    getTemplates_sub.set_defaults(func=getTemplates)
 
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
