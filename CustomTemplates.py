@@ -1,11 +1,11 @@
 from pprint import pprint
-import glob, os
+import glob, os, json
 
 class CustomTemplates:
 
     def __init__(self):
         self.notebooks = []
-        x=5
+        self.multi_notebooks = []
 
     def get(self, sf):
 
@@ -13,24 +13,30 @@ class CustomTemplates:
         self.check_templates_dir()
         self.check_sf_dir( sf )
 
-        pprint( self.notebooks )
-        return self.notebooks
+        jnote = json.dumps( self.notebooks )
+
+        pprint( jnote )
+        return jnote
+
+
+    def check_dir(self, check_dir, paste):
+
+        if os.path.exists(check_dir) and os.path.isdir(check_dir):
+
+            os.chdir(check_dir)
+
+            for file in glob.glob("*.ipynb"):
+                paste.append( check_dir + "/" + file)
 
 
     def check_sf_dir(self, sf):
-
-        os.chdir(sf)
-        for file in glob.glob("*.ipynb"):
-            self.notebooks.append(file)
+        self.check_dir( sf, self.notebooks )
 
 
     def check_templates_dir(self):
 
         temps_dir = "/usr/gapps/spot/templates"
-        os.chdir(temps_dir)
-
-        for file in glob.glob("*.ipynb"):
-            self.notebooks.append(file)
+        self.check_dir(temps_dir, self.notebooks)
 
 
     def check_home_dir(self):
@@ -39,10 +45,7 @@ class CustomTemplates:
         home = expanduser("~")        
         homedir = home + "/notebooks"
 
-        if os.path.exists(homedir) and os.path.isdir(homedir):
-            os.chdir(homedir)
+        self.check_dir(homedir, self.notebooks)
 
-            for file in glob.glob("*.ipynb"):
-                self.notebooks.append(file)
-
+        multi_homedir = home + "/multi_notebooks"
 
