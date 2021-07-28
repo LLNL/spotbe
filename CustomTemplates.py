@@ -50,7 +50,7 @@ class CustomTemplates:
         self.check_dir(temps_dir, self.notebooks)
 
         multi_dir = "/usr/gapps/spot/templates/multi"
-        self.check_dir(temps_dir, self.multi_notebooks)
+        self.check_dir(multi_dir, self.multi_notebooks)
 
 
     def check_home_dir(self):
