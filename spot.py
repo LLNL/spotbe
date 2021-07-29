@@ -246,7 +246,12 @@ def jupyter(args):
 
         ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-        ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+
+        try:
+            ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+        except Exception as e:
+            print(e)
+
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
         
         dd = get_deploy_dir()

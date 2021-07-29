@@ -8,10 +8,8 @@ class CustomTemplates:
         self.multi_notebooks = []
 
     def get(self, sf):
-        try:
-            self.get_files(sf)
-        except Exception as e:
-            print(e)
+        self.get_files(sf)
+
 
     def get_files(self, sf):
 
@@ -31,12 +29,16 @@ class CustomTemplates:
 
     def check_dir(self, check_dir, paste):
 
-        if os.path.exists(check_dir) and os.path.isdir(check_dir):
+        try:
+            if os.path.exists(check_dir) and os.path.isdir(check_dir):
 
-            os.chdir(check_dir)
+                os.chdir(check_dir)
 
-            for file in glob.glob("*.ipynb"):
-                paste.append( check_dir + "/" + file)
+                for file in glob.glob("*.ipynb"):
+                    paste.append( check_dir + "/" + file)
+        except Exception as e:
+            #print(e)
+            pass
 
 
     def check_sf_dir(self, sf):
