@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 from sina.datastore import create_datastore
 from sina.utils import DataRange
+from sina.model import Record
 
 def _get_run_data_from_records(records):
     """ Return run data dict from Sina DB for given records
@@ -84,3 +87,68 @@ class SpotSinaDB:
             result[rec.id] = data
 
         return result
+
+
+    def add(self, obj, *args, **kwargs):
+        self._update_attribute_records(obj["globals"], obj["attributes"])
+        rec = Record(id=str(uuid4()), type="run")
+
+        for name, value in obj["globals"].items():
+            if name.startswith("cali.") or name.startswith("spot."):
+                continue
+
+            type = obj["attributes"][name]["type"]
+
+            if type == "int" or type == "uint":
+                value = int(value)
+            elif type == "double":
+                value = float(value)
+
+            rec.add_data(name, value)
+
+        # Add profiling data
+
+        channel_data = {}
+
+        for entry in obj["records"]:
+            channel = "regionprofile"
+
+            if "spot.channel" in entry:
+                channel = entry["spot.channel"]
+                entry.pop("spot.channel")
+
+            if not channel in channel_data:
+                channel_data[channel] = []
+
+            channel_data[channel].append(entry)
+
+        rec.user_defined = channel_data
+
+        filename = kwargs.get('filename', None)
+        if filename is not None:
+            rec.add_file(filename, tags=[ "caliper" ])
+
+        self.ds.records.insert(rec)
+
+
+    def _update_attribute_records(self, globals, attributes):
+        def _update_record(name, rectype, values):
+            if self.ds.records.exist(name):
+                return
+            rec = Record(id=name, type=rectype)
+            for k,v in values.items():
+                rec.add_data(k,v)
+            self.ds.records.insert(rec)
+
+        metrics = []
+
+        if "spot.metrics" in globals:
+            metrics.extend(filter(lambda m : len(m) > 0, globals["spot.metrics"].split(",")))
+        if "spot.timeseries.metrics" in globals:
+            metrics.extend(filter(lambda m : len(m) > 0, globals["spot.timeseries.metrics"].split(",")))
+
+        for name in metrics:
+            _update_record(name, "caliper_metric_attribute", attributes[name])
+
+        for name in globals.keys():
+            _update_record(name, "caliper_global_attribute", attributes[name])

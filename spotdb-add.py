@@ -4,11 +4,7 @@ import json
 import sys
 import subprocess
 
-from uuid import uuid4
-
-from sina.datastore import create_datastore
-from sina.model import Record
-
+from spotdb.sinadb import SpotSinaDB
 
 def _get_json_from_cali_with_caliquery(filename):
     cmd = [ 'cali-query', '-q', 'format json(object)', filename ]
@@ -68,31 +64,8 @@ def _get_json_from_cali(filename):
     return { "attributes": attr, "globals": r.globals, "records": recs }
 
 
-def _update_attribute_records(ds, globals, attributes):
-    def _update_record(name, rectype, values):
-        if ds.records.exist(name):
-            return
-        rec = Record(id=name, type=rectype)
-        for k,v in values.items():
-            rec.add_data(k,v)
-        ds.records.insert(rec)
-
-    metrics = []
-
-    if "spot.metrics" in globals:
-        metrics.extend(filter(lambda m : len(m) > 0, globals["spot.metrics"].split(",")))
-    if "spot.timeseries.metrics" in globals:
-        metrics.extend(filter(lambda m : len(m) > 0, globals["spot.timeseries.metrics"].split(",")))
-
-    for name in metrics:
-        _update_record(name, "caliper_metric_attribute", attributes[name])
-
-    for name in globals.keys():
-        _update_record(name, "caliper_global_attribute", attributes[name])
-
-
 def _add(dbfile, files):
-    ds = create_datastore(dbfile)
+    db = SpotSinaDB(dbfile)
 
     for califile in files:
         obj = _get_json_from_cali(califile)
@@ -103,45 +76,7 @@ def _add(dbfile, files):
         if not 'spot.format.version' in obj['globals']:
             sys.exit('{} is not a Spot file: spot.format.version attribute is missing.'.format(califile))
 
-        _update_attribute_records(ds, obj["globals"], obj["attributes"])
-
-        # Add metadata
-
-        rec = Record(id=str(uuid4()), type="run")
-
-        for name, value in obj["globals"].items():
-            if name.startswith("cali.") or name.startswith("spot."):
-                continue
-
-            type = obj["attributes"][name]["type"]
-
-            if type == "int" or type == "uint":
-                value = int(value)
-            elif type == "double":
-                value = float(value)
-
-            rec.add_data(name, value)
-
-        # Add profiling data
-
-        channel_data = {}
-
-        for entry in obj["records"]:
-            channel = "regionprofile"
-
-            if "spot.channel" in entry:
-                channel = entry["spot.channel"]
-                entry.pop("spot.channel")
-
-            if not channel in channel_data:
-                channel_data[channel] = []
-
-            channel_data[channel].append(entry)
-
-        rec.user_defined = channel_data
-        rec.add_file(califile, tags=[ "caliper" ])
-
-        ds.records.insert(rec)
+        db.add(obj, filename=califile)
 
 
 def help():
