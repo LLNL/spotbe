@@ -65,9 +65,11 @@ def _get_json_from_cali(filename):
 
 
 def _add(dbfile, files):
-    db = SpotSinaDB(dbfile)
+    db = SpotSinaDB(dbfile, read_only=False)
 
-    for califile in files:
+    files_to_add = db.filter_existing_entries(files)
+
+    for califile in files_to_add:
         obj = _get_json_from_cali(califile)
         keys = obj.keys()
 
@@ -77,6 +79,13 @@ def _add(dbfile, files):
             sys.exit('{} is not a Spot file: spot.format.version attribute is missing.'.format(califile))
 
         db.add(obj, filename=califile)
+
+    n_added   = len(files_to_add)
+    n_skipped = len(files) - n_added
+
+    print("spotdb-add: {} record(s) added.".format(n_added))
+    if n_skipped > 0:
+        print("spotdb-add: {} duplicate(s) skipped.".format(n_skipped))
 
 
 def help():
@@ -92,8 +101,8 @@ def main():
 
     dbfile = args.pop()
 
-    if not dbfile.endswith('.sqlite'):
-        msg = "spotdb-add: Expected SQLite DB file (.sqlite) as last argument. Got " + dbfile + "."
+    if not (dbfile.endswith('.sqlite') or dbfile.startswith('mysql')):
+        msg = 'spotdb-add: Expected SQLite DB file (.sqlite) or SQL connection string ("mysql...") as last argument. Got ' + dbfile + '.'
         sys.exit(msg)
 
     _add(dbfile, args)

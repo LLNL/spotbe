@@ -1,6 +1,7 @@
+from os import read
 from uuid import uuid4
 
-from sina.datastore import create_datastore
+import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
@@ -31,8 +32,8 @@ class SpotSinaDB:
     """ Access a Spot SQL DB through Sina
     """
 
-    def __init__(self, filename):
-        self.ds = create_datastore(filename)
+    def __init__(self, filename, read_only=False):
+        self.ds = sina.datastore.connect(filename, read_only=read_only)
 
     def __del__(self):
         self.ds.close()
@@ -87,6 +88,19 @@ class SpotSinaDB:
             result[rec.id] = data
 
         return result
+
+
+    def filter_existing_entries(self, filenames):
+        ret = []
+
+        for f in filenames:
+            ids = self.ds.records.find_with_file_uri(f, ids_only=True)
+
+            _dummy = object()
+            if next(ids, _dummy) == _dummy:
+                ret.append(f)
+        
+        return ret
 
 
     def add(self, obj, *args, **kwargs):

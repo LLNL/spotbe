@@ -561,7 +561,7 @@ def _getAllJsonRuns(filepath, subpaths, maxlevels):
 
 
 def _get_sina_data(database, lastRead):
-    sdb = SpotSinaDB(database)
+    sdb = SpotSinaDB(database, read_only=True)
 
     return { 'Runs': sdb.get_run_data(lastRead),
              'RunDataMeta': sdb.get_metric_metadata(),
@@ -676,7 +676,7 @@ def getData(args):
     output = {}
 
     # sql database
-    if dataSetKey.endswith(('.yaml', '.sqlite')):
+    if dataSetKey.endswith(('.yaml', '.sqlite')) or dataSetKey.startswith('mysql'):
         # output = _getAllDatabaseRuns(dataSetKey, lastRead)
         output = _get_sina_data(dataSetKey, lastRead)
 
