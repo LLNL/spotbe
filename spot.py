@@ -349,6 +349,12 @@ def _getAllJsonRuns(filepath, subpaths):
     for subpath in subpaths:
         from pprint import pprint
 
+        title = ""
+        the_key = ""
+        funcpath = ""
+        value = ""
+        values = ""
+
         try:
             whole_path = os.path.join( filepath, subpath )
             data = json.load(open(whole_path))
@@ -440,10 +446,10 @@ def _getAllJsonRuns(filepath, subpaths):
                     #runs[rkey]['Data'][funcpath] = {'yAxis': val1}
 
         except:
-            debugi = 0
+            debugi = 1 
             if debugi == 1:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
-                print('While processing subpath: ' + subpath)
+                print('ERROR: While processing subpath: ' + subpath)
                 pprint(exc_obj)
                 print('the_key=' + str(the_key))
                 print('title=' + title)
@@ -602,7 +608,7 @@ def getData(args):
                     if newCtime > cachedRunCtimes.get(runKey, 0):
                         newRuns.append(runKey)
 
-                if fname.endswith('.json'):
+                if fname.endswith('.json') and fname != "dictionary.json" and fname != "cacheToFE.json":
                     jsonSubpaths.append(runKey)
 
         deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
