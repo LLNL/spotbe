@@ -291,6 +291,7 @@ def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
 
 def _getAllCaliRuns(filepath, subpaths):
     import multiprocessing
+    from pprint import pprint
 
     cali_json = []
     try:
@@ -299,41 +300,50 @@ def _getAllCaliRuns(filepath, subpaths):
         for fp in _prependDir(filepath, subpaths):
             cali_json.append(_cali_to_json(fp))
 
-    # process all new files to transfer to front-end
-    runs = {}
-    runDataMeta = {}
-    runGlobalMeta = {}
+    try:
+        # process all new files to transfer to front-end
+        runs = {}
+        runDataMeta = {}
+        runGlobalMeta = {}
 
-    for (subpath, run) in zip(subpaths, cali_json):
+        for (subpath, run) in zip(subpaths, cali_json):
 
-        runData = {}
-        runGlobals = {}
+            runData = {}
+            runGlobals = {}
 
-        # get runData and runDataMeta
-        for record in run['records']:
-            funcpath = record.pop('path', None)
-            if funcpath:
-                runData[funcpath] = record
-        for metricName in list(runData.items())[0][1]:
-            runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
+            # get runData and runDataMeta
+            for record in run['records']:
+               funcpath = record.pop('path', None)
+               if funcpath:
+                   runData[funcpath] = record
 
-        # get runGlobals and runGlobalMeta
-        for (global_, val) in run['globals'].items():
-            adiakType = _getAdiakType(run, global_)
+            for metricName in list(runData.items())[0][1]:
+               runDataMeta[metricName] = {'type': run['attributes'][metricName]["cali.attribute.type"]}
+
+            # get runGlobals and runGlobalMeta
+            for (global_, val) in run['globals'].items():
+                adiakType = _getAdiakType(run, global_)
             
-            if global_ == "spot.options":
-                if val == "timeseries":
-                    runGlobals['timeseries'] = 1
+                if global_ == "spot.options":
+                    if val == "timeseries":
+                        runGlobals['timeseries'] = 1
 
-            if adiakType:
-                runGlobals[global_] = val
+                if adiakType:
+                    runGlobals[global_] = val
           
-                runGlobalMeta[global_] = {'type': adiakType}
+                    runGlobalMeta[global_] = {'type': adiakType}
 
-        # collect run
-        runs[subpath] = { 'Data': runData
+            # collect run
+            runs[subpath] = { 'Data': runData
                       , 'Globals': runGlobals
                       }
+
+    except:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            print('ERROR: While processing CALI file: ' + subpath + '<br><br>')
+            pprint(exc_obj)
+            print('<br><br>spot.py line_no=' + str(exc_tb.tb_lineno) )
+            print('<br><br>')
 
     # output new data
     return { 'Runs': runs
@@ -347,7 +357,6 @@ def _getAllJsonRuns(filepath, subpaths):
 
     idx = -1  
     for subpath in subpaths:
-        from pprint import pprint
 
         title = ""
         the_key = ""
@@ -547,6 +556,9 @@ def returnErr( is_err, err_str ):
  
 
 def getData(args):
+
+    from pprint import pprint
+
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
     poolCount = args.poolCount or "18"
@@ -617,13 +629,22 @@ def getData(args):
         json_output = {}
         cali_output = {}
 
-        if jsonSubpaths:
-            json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
+        try:
+            if jsonSubpaths:
+                json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
+
+        except:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                print('ERROR: While processing JSON subpaths.')
+                pprint(exc_obj)
+                print('spot.py line_no=' + str(exc_tb.tb_lineno) )
+                print('<br><br>')
 
         if newRuns:
             cali_output = _getAllCaliRuns(dataSetKey, newRuns)
 
-        from pprint import pprint
+
+
 
         if 'Runs' not in json_output:
             json_output['Runs'] = {} 
