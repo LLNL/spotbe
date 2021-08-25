@@ -315,7 +315,9 @@ def _getAllCaliRuns(filepath, subpaths):
             # get runData and runDataMeta
             for record in run['records']:
                funcpath = record.pop('path', None)
-               if funcpath:
+               is_top_path = funcpath.count('/') <= 2
+
+               if funcpath and is_top_path:
                    runData[funcpath] = record
 
             for metricName in list(runData.items())[0][1]:
@@ -446,7 +448,10 @@ def _getAllJsonRuns(filepath, subpaths):
                     #if rkey in runs: 
                         #runs[rkey]['Data']['main'] = {'yAxis': 0}
                         #if val1 > 0.5:
-                    if rkey in runs:
+
+                    is_top_path = funcpath.count('/') <= 2
+
+                    if rkey in runs and is_top_path:
                         #pprint( "is inside" )
                         runs[rkey]['Data'][funcpath] = {'yAxis': val1}
          
