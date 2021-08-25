@@ -2,6 +2,7 @@
 
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
+from pprint import pprint
 
 from datetime import datetime
 
@@ -418,11 +419,9 @@ def _getAllJsonRuns(filepath, subpaths):
                                                 , 'Data': {}
                                                 }
 
-            #pprint(values)
 
             for funcpath, values in data.items():
 
-                #pprint(values)
                 #print( 'for funcpath(' + funcpath + ') values in data.items()' )
                 val0 = 1
 
@@ -635,6 +634,7 @@ def getData(args):
 
         except:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
+                
                 print('ERROR: While processing JSON subpaths.')
                 pprint(exc_obj)
                 print('spot.py line_no=' + str(exc_tb.tb_lineno) )
