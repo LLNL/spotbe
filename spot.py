@@ -290,7 +290,7 @@ def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
            , 'RunSetMeta': {'LastReadPosix': runNum}
            }
 
-def _getAllCaliRuns(filepath, subpaths):
+def _getAllCaliRuns(filepath, subpaths, maxlevels):
     import multiprocessing
     from pprint import pprint
 
@@ -319,7 +319,7 @@ def _getAllCaliRuns(filepath, subpaths):
                is_top_path = 0
 
                if hasattr( funcpath, 'count'):
-                   is_top_path = funcpath.count('/') <= 2
+                   is_top_path = funcpath.count('/') <= maxlevels 
 
                if funcpath and is_top_path:
                    runData[funcpath] = record
@@ -358,7 +358,7 @@ def _getAllCaliRuns(filepath, subpaths):
            , 'RunGlobalMeta': runGlobalMeta
            }
 
-def _getAllJsonRuns(filepath, subpaths):
+def _getAllJsonRuns(filepath, subpaths, maxlevels):
     output = {}
     runs = {}
 
@@ -453,7 +453,7 @@ def _getAllJsonRuns(filepath, subpaths):
                         #runs[rkey]['Data']['main'] = {'yAxis': 0}
                         #if val1 > 0.5:
 
-                    is_top_path = funcpath.count('/') <= 2
+                    is_top_path = funcpath.count('/') <= maxlevels
 
                     if rkey in runs and is_top_path:
                         #pprint( "is inside" )
@@ -567,6 +567,9 @@ def getData(args):
 
     from pprint import pprint
 
+    maxlevels = args.maxLevels or 20
+    maxlevels = int(maxlevels)
+
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
     poolCount = args.poolCount or "18"
@@ -639,7 +642,7 @@ def getData(args):
 
         try:
             if jsonSubpaths:
-                json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths)
+                json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths, maxlevels)
 
         except:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -650,7 +653,7 @@ def getData(args):
                 print('<br><br>')
 
         if newRuns:
-            cali_output = _getAllCaliRuns(dataSetKey, newRuns)
+            cali_output = _getAllCaliRuns(dataSetKey, newRuns, maxlevels)
 
 
 
@@ -818,6 +821,7 @@ if __name__ == "__main__":
     getData_sub.add_argument("cachedRunCtimes",  help="list of subpaths with timestamps")
     getData_sub.add_argument("--poolCount",  help="specify number of pools to use")
     getData_sub.add_argument("--writeToFile",  help="specify number of pools to use")
+    getData_sub.add_argument("--maxLevels",  help="specify number of levels to show for flamecharts")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
 
