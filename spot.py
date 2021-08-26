@@ -315,7 +315,11 @@ def _getAllCaliRuns(filepath, subpaths):
             # get runData and runDataMeta
             for record in run['records']:
                funcpath = record.pop('path', None)
-               is_top_path = funcpath.count('/') <= 2
+
+               is_top_path = 0
+
+               if hasattr( funcpath, 'count'):
+                   is_top_path = funcpath.count('/') <= 2
 
                if funcpath and is_top_path:
                    runData[funcpath] = record
