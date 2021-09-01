@@ -457,7 +457,7 @@ def _getAllJsonRuns(filepath, subpaths, maxlevels):
 
                     if rkey in runs and is_top_path:
                         #pprint( "is inside" )
-                        runs[rkey]['Data'][funcpath] = {'yAxis': val1}
+                        runs[rkey]['Data'][funcpath] = {'avg#inclusive#sum#time.duration': val1}
          
                     #runs[rkey]['Data']['main'] = {yAxis: 0}
                     #runs[rkey]['Data'][funcpath] = {'yAxis': val1}
@@ -481,7 +481,7 @@ def _getAllJsonRuns(filepath, subpaths, maxlevels):
 
 
     return { 'Runs': runs
-           , 'RunDataMeta': {'yAxis': {'type': 'double'}}
+           , 'RunDataMeta': {'avg#inclusive#sum#time.duration': {'type': 'double'}}
            , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
                               , 'commit': {'type': 'string'}
                               }
@@ -701,6 +701,7 @@ def getData(args):
     #  Currently not using pri_str because combined directories of json and cali will result in ,,,, need to fix that before can use the optimized version:
     #pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
 
+    #print("writing to dataSetKey: " + dataSetKey )
     runt.write_dictionary_to_file( dataSetKey )
 
     if writeToFile == '1':
