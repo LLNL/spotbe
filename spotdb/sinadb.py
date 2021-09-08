@@ -162,7 +162,9 @@ class SpotSinaDB:
             metrics.extend(filter(lambda m : len(m) > 0, globals["spot.timeseries.metrics"].split(",")))
 
         for name in metrics:
-            _update_record(name, "caliper_metric_attribute", attributes[name])
+            if name in attributes:
+                _update_record(name, "caliper_metric_attribute", attributes[name])
 
         for name in globals.keys():
-            _update_record(name, "caliper_global_attribute", attributes[name])
+            if name in attributes:
+                _update_record(name, "caliper_global_attribute", attributes[name])
