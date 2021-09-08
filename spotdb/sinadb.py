@@ -5,6 +5,8 @@ import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
+from base import SpotDB
+
 def _get_run_data_from_records(records):
     """ Return run data dict from Sina DB for given records
     """
@@ -28,7 +30,7 @@ def _get_run_data_from_records(records):
     return runs
 
 
-class SpotSinaDB:
+class SpotSinaDB(SpotDB):
     """ Access a Spot SQL DB through Sina
     """
 
@@ -38,7 +40,7 @@ class SpotSinaDB:
     def __del__(self):
         self.ds.close()
 
-    def get_run_data(self, last_read_time):
+    def get_all_run_data(self, last_read_time):
         """ Return a dict with region profile and global values for each
         run in the database.
 
