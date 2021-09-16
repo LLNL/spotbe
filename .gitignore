@@ -5,3 +5,4 @@ generate_spot2_url
 hatchet/
 .ipynb_checkpoints/
 __pycache__
+venv
