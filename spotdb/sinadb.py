@@ -5,7 +5,7 @@ import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
-from base import SpotDB
+from spotdb.base import SpotDB
 
 def _get_run_data_from_records(records):
     """ Return run data dict from Sina DB for given records
@@ -92,6 +92,27 @@ class SpotSinaDB(SpotDB):
         return result
 
 
+    def get_all_run_ids(self):
+        recs = self.ds.records.find_with_type("run")
+        return [ r["id"] for r in recs ]
+
+
+    def get_new_runs(self, last_read_time):
+        recs = self.ds.records.find_with_data(launchdate=DataRange(min=last_read_time))
+        return [ r["id"] for r in recs ]
+
+
+    def get_global_data(self, run_ids):
+        ret = {}
+
+        for run in run_ids:
+            rec = self.ds.records.get(run)
+            globals = { k: v['value'] for k, v in rec.data.items() }
+            ret[run] = globals
+
+        return ret
+    
+    
     def filter_existing_entries(self, filenames):
         ret = []
 
