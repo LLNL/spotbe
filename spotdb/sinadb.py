@@ -1,11 +1,20 @@
-from os import read
 from uuid import uuid4
 
 import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
-from spotdb.base import SpotDB
+from spotdb.spotdb import SpotDB
+
+def _extract_regionprofile(regionprofile_records):
+    ret = {}
+
+    for rec in regionprofile_records:
+        path = rec.pop('path', None)
+        if path:
+            ret[path] = rec
+
+    return ret
 
 def _get_run_data_from_records(records):
     """ Return run data dict from Sina DB for given records
@@ -14,18 +23,15 @@ def _get_run_data_from_records(records):
     runs = {}
 
     for rec in records:
-        pathprofile = {}
+        regionprofile = {}
         globals = { k: v['value'] for k, v in rec.data.items() }
 
-        for prec in rec.user_defined['regionprofile']:
-            path = prec.pop('path', None)
-            if path:
-                pathprofile[path] = prec
-
+        if 'regionprofile' in rec.user_defined:
+            regionprofile = _extract_regionprofile(rec.user_defined['regionprofile'])
         if 'timeseries' in rec.user_defined:
             globals['timeseries'] = 1
 
-        runs[rec.id] = { 'Data': pathprofile, 'Globals': globals }
+        runs[rec.id] = { 'Data': regionprofile, 'Globals': globals }
 
     return runs
 
@@ -111,8 +117,19 @@ class SpotSinaDB(SpotDB):
             ret[run] = globals
 
         return ret
-    
-    
+
+
+    def get_regionprofiles(self, run_ids):
+        ret = {}
+
+        for run in run_ids:
+            rec = self.ds.records.get(run)
+            if 'regionprofile' in rec.user_defined:
+                ret[run] = _extract_regionprofile(rec.user_defined['regionprofile'])
+
+        return ret
+
+
     def filter_existing_entries(self, filenames):
         ret = []
 
@@ -122,7 +139,7 @@ class SpotSinaDB(SpotDB):
             _dummy = object()
             if next(ids, _dummy) == _dummy:
                 ret.append(f)
-        
+
         return ret
 
 

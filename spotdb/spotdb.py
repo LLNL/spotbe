@@ -28,6 +28,7 @@ class SpotDB(ABC):
         """ Return list of run ids newer than last_read """
         pass
 
+    @abstractmethod
     def get_global_data(self, run_ids):
         """ Return global attributes for the given list of run_ids
 

@@ -6,7 +6,7 @@ import subprocess
 
 from spotdb.sinadb import SpotSinaDB
 
-def _get_json_from_cali_with_caliquery(filename):
+def _read_cali_with_caliquery(filename):
     cmd = [ 'cali-query', '-q', 'format json(object)', filename ]
     proc = subprocess.Popen(cmd, stdout = subprocess.PIPE)
     cmdout, _ = proc.communicate()
@@ -45,7 +45,7 @@ def _filter_cali_profile_record(reader, record):
     return out
 
 
-def _get_json_from_cali(filename):
+def _read_cali(filename):
     from caliperreader import CaliperReader
 
     r = CaliperReader()
@@ -70,7 +70,7 @@ def _add(dbfile, files):
     files_to_add = db.filter_existing_entries(files)
 
     for califile in files_to_add:
-        obj = _get_json_from_cali(califile)
+        obj = _read_cali(califile)
         keys = obj.keys()
 
         if 'globals' not in keys or 'records' not in keys:
