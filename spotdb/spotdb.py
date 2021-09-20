@@ -4,14 +4,14 @@ class SpotDB(ABC):
     """ SpotDB base class """
     
     @abstractmethod
-    def get_global_metadata(self):
+    def get_global_attribute_metadata(self):
         """ Return a dict with metadata (e.g., data types) for all global 
             attributes found in the database.
         """
         pass
 
     @abstractmethod
-    def get_metric_metadata(self):
+    def get_metric_attribute_metadata(self):
         """ Return a dict with metadata (e.g., aliases) for all metric 
             attributes found in the database.
         """
@@ -75,12 +75,16 @@ def connect(database_key):
         (directory or SQL connection string)
     """
 
-    # if database_key is a directory:
-    #    return spotcalidb.SpotCaliperDirectoryDB(database_key)
-    # elif database_key is a SQL connection string:
-    #    return spotsinadb.SpotSinaDB(database_key)
-    # else:
-    #    raise error
+    import os
+    import sys
 
-    pass
+    if os.path.isdir(database_key):
+        from spotdb.calidirdb import SpotCaliperDirectoryDB
+        return SpotCaliperDirectoryDB(database_key)
+    elif database_key.endswith(".sqlite") or database_key.startswith("mysql"):
+        from spotdb.sinadb import SpotSinaDB
+        return SpotSinaDB(database_key, read_only=True)
+    else:
+        msg = "Unknown Spot database format: " + database_key
+        sys.exit(msg)
     

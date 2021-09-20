@@ -10,9 +10,10 @@ def _extract_regionprofile(regionprofile_records):
     ret = {}
 
     for rec in regionprofile_records:
-        path = rec.pop('path', None)
+        tmp = rec.copy()
+        path = tmp.pop('path', None)
         if path:
-            ret[path] = rec
+            ret[path] = tmp
 
     return ret
 
@@ -70,7 +71,7 @@ class SpotSinaDB(SpotDB):
         return _get_run_data_from_records(self.ds.records.get(targets))
 
 
-    def get_global_metadata(self):
+    def get_global_attribute_metadata(self):
         records = self.ds.records.find_with_type('caliper_global_attribute')
         result = { }
 
@@ -81,7 +82,7 @@ class SpotSinaDB(SpotDB):
         return result
 
 
-    def get_metric_metadata(self):
+    def get_metric_attribute_metadata(self):
         records = self.ds.records.find_with_type('caliper_metric_attribute')
         result = {}
 

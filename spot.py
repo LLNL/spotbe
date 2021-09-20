@@ -645,13 +645,14 @@ def returnErr( is_err, err_str ):
  
 
 
-def getData(args):
 
+def _getData_old(args):
     from pprint import pprint
 
     maxlevels = args.maxLevels or 20
     maxlevels = int(maxlevels)
 
+    update_usage_file("getData")
     dataSetKey = args.dataSetKey
     lastRead = args.lastRead or 0
     poolCount = args.poolCount or "18"
@@ -839,6 +840,42 @@ def merge(source, destination):
             destination[key] = value
 
     return destination
+
+
+def getData(args):
+    import spotdb.spotdb as spotdb
+
+    dataset_key = args.dataSetKey
+    last_read = args.lastRead or 0
+
+    db = spotdb.connect(dataset_key)
+
+    runs = [] 
+    
+    if last_read > 0:
+        runs = db.get_new_runs(last_read)
+    else:
+        runs = db.get_all_run_ids()
+
+    # merge "global" and "regionprofile" records into "Runs" structure
+
+    globals = db.get_global_data(runs)
+    records = db.get_regionprofiles(runs)
+
+    rundata = { }
+
+    for run in runs:
+        if run in globals and run in records:
+            rundata[run] = { "Data": records[run], "Globals": globals[run] }
+
+    output = { 
+        "Runs"          : rundata, 
+        "RunDataMeta"   : db.get_metric_attribute_metadata(), 
+        "RunGlobalMeta" : db.get_global_attribute_metadata()
+    }
+
+    return json.dump(output, sys.stdout)
+
 
 
 def getRun(runId, db=None):

@@ -39,6 +39,11 @@ def help():
 def main():
     args = sys.argv[1:]
 
+    if (len(args) < 2):
+        msg = "spotdb-add: Expected caliper-file(s) and SQL connection string arguments"
+        help()
+        sys.exit(msg)
+
     if (args[0] == "-h" or args[0] == "--help"):
         help()
         sys.exit()
