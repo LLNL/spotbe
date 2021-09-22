@@ -62,6 +62,20 @@ class SpotDB(ABC):
     def get_channel_data(self, channel_name, run_ids):
         """ Return channel data (e.g., timeseries profile) for the 
             given list of run ids and channel 
+
+            Structure:
+
+            {
+                run_id_1: [ 
+                    { "attribute": "value", ... },
+                    { "attribute": "value", ... },
+                    ...
+                ],
+                run_id_2: [
+                    ...
+                ], 
+                ...
+            }
         """
         pass
 

@@ -1,29 +1,12 @@
 import os
 import sys
 
-from spotdb.spotdb import SpotDB
+from .spotdb import SpotDB
 
-import spotdb.caliutil as cali
-
-
-def _extract_regionprofile(records):
-    ret = { }
-
-    for rec in records:
-        tmp = rec.copy()
-        channel = tmp.pop("spot.channel", "regionprofile")
-
-        if channel != "regionprofile":
-            continue
-
-        path = tmp.pop("path", None)
-        if path:
-            ret[path] = tmp
-    
-    return ret
+from .caliutil import read_caliper_file
 
 
-def _extract_channel(records, channel_name):
+def _extract_channel_data(records, channel_name):
     ret = [ ]
 
     for rec in records:
@@ -36,6 +19,33 @@ def _extract_channel(records, channel_name):
         ret.append(tmp)
 
     return ret
+
+
+def _extract_regionprofile(records):
+    ret = { }
+
+    for rec in _extract_channel_data(records, "regionprofile"):
+        path = rec.pop("path", None)
+        if path:
+            ret[path] = rec
+
+    return ret
+
+
+def _get_channels(caliper_data):
+    """ Return the set of profile data channels in the given Spot caliper data
+    """
+
+    channels = set()
+
+    if 'spot.channels' in caliper_data["globals"]:
+        cl = filter(lambda s : len(s) > 0, caliper_data["globals"]["spot.channels"])
+        channels = { c for c in  cl }
+    else:
+        for rec in caliper_data["records"]:
+            channels.add(rec.get("spot.channel", "regionprofile"))
+
+    return channels
 
 
 class SpotCaliperDirectoryDB(SpotDB):
@@ -139,13 +149,25 @@ class SpotCaliperDirectoryDB(SpotDB):
 
 
     def get_channel_data(self, channel_name, run_ids):
-        return super().get_channel_data(channel_name, run_ids)
+        ret = {}
+
+        for run in run_ids:
+            if not run in self.cache:
+                self._read_califile(run)
+            if run in self.cache:
+                ret[run] = _extract_channel_data(self.cache[run]["records"], channel_name)
+
+        return ret
 
 
     def _read_califile(self, filename):
-        content = cali.read_caliper_file(filename)
+        content = read_caliper_file(filename)
 
         if 'spot.format.version' in content['globals']:
+            channels = _get_channels(content)
+            if 'timeseries' in channels:
+                content["globals"]["timeseries"] = 1
+
             self.cache[filename] = content
             self._update_metadata(content["globals"], content["attributes"])
 
