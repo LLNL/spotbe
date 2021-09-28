@@ -196,9 +196,11 @@ class RunTable:
        table_str = self.make_table_str()
        filename = path + "/dictionary.json"
 
-       f = open( filename, "w" )
-       f.write( '{' + table_str + '}' )
-       f.close()
+       try:
+           f = open( filename, "w" )
+           f.write( '{' + table_str + '}' )
+           f.close()
+       except: pass
 
 
     def render(self):
