@@ -207,6 +207,24 @@ def multi_jupyter(args):
         else:
             print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
 
+
+def update_usage_file(op):
+    try:
+        usage_dir = CONFIG['usage_logging_dir']
+        if (usage_dir != ''):
+            usage_file_name = os.path.join(usage_dir, 'usage.log')
+
+            if os.path.exists(usage_file_name):
+                if os.access(usage_file_name, os.W_OK):
+                    now = datetime.now()
+                    date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+                    uname = getpass.getuser()
+                    with open(usage_file_name, "a") as myfile:
+                        myfile.write(date_time + ' ' + uname + ' ' + op + '\n')
+    except:
+        pass
+
+
 def jupyter(args):
 
     update_usage_file("jupyter")
