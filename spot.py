@@ -736,14 +736,17 @@ def getData(args):
 
 
     # old way
-    jstr = json.dumps(output)
-    pri_str = jstr
-
     from RunTable import RunTable
 
     runt = RunTable( output, poolCount )
     table_text = runt.make_table_str()
     pool_text = runt.make_pool_str()
+
+    myDictionary = json.loads( "{" + table_text + "}" )
+    output['dictionary'] = myDictionary["dictionary"]
+
+    jstr = json.dumps(output)
+    pri_str = jstr
 
     #  Currently not using pri_str because combined directories of json and cali will result in ,,,, need to fix that before can use the optimized version:
     #pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
