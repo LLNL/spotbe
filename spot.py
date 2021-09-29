@@ -752,7 +752,7 @@ def getData(args):
     #pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
 
     #print("writing to dataSetKey: " + dataSetKey )
-    runt.write_dictionary_to_file( dataSetKey )
+    #runt.write_dictionary_to_file( dataSetKey )
 
     if writeToFile == '1':
        print('wrote file to: ' + cachePath)
