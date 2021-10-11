@@ -164,11 +164,16 @@ class RunTable:
             pool_res = multiprocessing.Pool( self.poolCount ).map( self.subset_of_runs_handler, run_subsets )
 
             #print("Pool results:")
-            #pprint( len(pool_res) )
+
+            while("" in pool_res):
+               pool_res.remove("")
+
             #pprint( pool_res )
+
             pool_str = ",".join( pool_res )
             compare_str = '"Runs":{' + pool_str + '}'
-            return compare_str
+          
+            return "{" + pool_str + "}"   #compare_str
 
 
     def split_workload( self, runs_arr, split_count ):

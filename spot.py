@@ -745,6 +745,11 @@ def getData(args):
     myDictionary = json.loads( "{" + table_text + "}" )
     output['dictionary'] = myDictionary["dictionary"]
 
+    #print(pool_text)
+    #exit()
+
+    output['Runs'] = json.loads( pool_text )
+
     jstr = json.dumps(output)
     pri_str = jstr
 
@@ -753,6 +758,8 @@ def getData(args):
 
     #print("writing to dataSetKey: " + dataSetKey )
     #runt.write_dictionary_to_file( dataSetKey )
+    #pprint(output)
+    #exit()
 
     if writeToFile == '1':
        print('wrote file to: ' + cachePath)
