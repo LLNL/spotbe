@@ -120,6 +120,15 @@ def get_jupyter_info():
         resultdict["base"] = jupyter_base
     return resultdict
 
+
+def getTemplates(args):
+    from CustomTemplates import CustomTemplates
+
+    ct = CustomTemplates()
+    templates = ct.get( args.cali_filepath )
+    return templates
+
+
 def multi_jupyter(args):
 
     update_usage_file("multi_jupyter")
@@ -130,6 +139,12 @@ def multi_jupyter(args):
     cali_path = args.cali_filepath
     cali_keys = json.loads(args.cali_keys)
     isContainer = args.container
+    custom_template = args.custom_template
+
+    template_to_open = CONFIG['multi_template_notebook']
+
+    if custom_template:
+        template_to_open = custom_template
 
     if isContainer:
         multi_cali_files = [{ 'cali_file'  : os.path.join(cali_path, cali_key)
@@ -138,7 +153,7 @@ def multi_jupyter(args):
                               for cali_key in cali_keys
                            ]
 
-        ntbk_template_str = (open(CONFIG['multi_template_notebook']).read()
+        ntbk_template_str = (open(template_to_open).read()
                                 .replace('MUTLI_CALI_FILES', '"CALI_FILES = {}\\n"'.format(json.dumps(multi_cali_files, indent=2).replace('"', '\\"').replace('\n','\\n')))
                                 .replace('CALI_METRIC_NAME', multi_cali_files[0]['metric_name'])
                                 .replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
@@ -188,7 +203,7 @@ def multi_jupyter(args):
         line_strs = line_strs + '\\n]\\n"'
 
         ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
-        ntbk_template_str = open(CONFIG['multi_template_notebook']).read()
+        ntbk_template_str = open(template_to_open).read()
         ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', line_strs )
         ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', str(first_metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
@@ -234,6 +249,12 @@ def jupyter(args):
     #  - first create directory
     cali_path = args.cali_filepath
     isContainer = args.container
+    custom_template = args.custom_template
+
+    template_to_open = CONFIG['template_notebook']
+
+    if custom_template:
+        template_to_open = custom_template
 
     if isContainer:
         metric_name = defaultKey(str(cali_path))
@@ -243,7 +264,7 @@ def jupyter(args):
         name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
         ntbk_fullpath = '/notebooks/spot/s{}.ipynb'.format(name)
         
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+        ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
         ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
 
@@ -267,7 +288,12 @@ def jupyter(args):
 
         ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
         ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-        ntbk_template_str = open(CONFIG['template_notebook']).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+
+        try:
+            ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
+        except Exception as e:
+            print(e)
+
         ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
         
         dd = get_deploy_dir()
@@ -861,8 +887,13 @@ if __name__ == "__main__":
     #memory_sub.add_argument("count", help="enter memory count")
     memory_sub.set_defaults(func=memoryGraph)
 
+    getTemplates_sub = subparsers.add_parser("getTemplates")
+    getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    getTemplates_sub.set_defaults(func=getTemplates)
+
     jupyter_sub = subparsers.add_parser("jupyter")
     jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
     jupyter_sub.set_defaults(func=jupyter)
 
     getCacheFileDate_sub = subparsers.add_parser("getCacheFileDate")
@@ -872,6 +903,7 @@ if __name__ == "__main__":
     multi_jupyter_sub = subparsers.add_parser("multi_jupyter")
     multi_jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     multi_jupyter_sub.add_argument("cali_keys", help="cali filenames used to construct the multi jupyter")
+    multi_jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
     multi_jupyter_sub.set_defaults(func=multi_jupyter)
 
     getData_sub = subparsers.add_parser("getData")
