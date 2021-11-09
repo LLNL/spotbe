@@ -1,5 +1,12 @@
 from abc import ABC, abstractmethod
 
+class SpotDBError(Exception):
+    """ SpotDB Error base class """
+
+    def __init__(self, msg):
+        self.msg = msg
+
+
 class SpotDB(ABC):
     """ SpotDB base class """
     
@@ -99,6 +106,5 @@ def connect(database_key):
         from spotdb.sinadb import SpotSinaDB
         return SpotSinaDB(database_key, read_only=True)
     else:
-        msg = "Unknown Spot database format: " + database_key
-        sys.exit(msg)
+        raise SpotDBError("Unknown Spot database format: " + database_key)
     
