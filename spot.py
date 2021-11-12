@@ -774,7 +774,8 @@ def getData(args):
     #print(pool_text)
     #exit()
 
-    output['Runs'] = json.loads( pool_text )
+    #  this will temporarily prevent compression.
+    #output['Runs'] = json.loads( pool_text )
 
     jstr = json.dumps(output)
     pri_str = jstr
