@@ -4,6 +4,7 @@ import multiprocessing
 import numpy as np
 
 from pprint import pprint
+import re
 
 class RunTable:
     
@@ -118,7 +119,9 @@ class RunTable:
             for (between_str) in self.between_table:
 
                 enc = self.between_table[ between_str ]
-                compressed_gen_str = compressed_gen_str.replace( between_str, enc )
+                
+                compressed_gen_str = compressed_gen_str.replace( between_str + "/", enc + "/" )
+                compressed_gen_str = re.sub(between_str + "$", enc, compressed_gen_str)
 
             dict_compressed_gdr_obj[ compressed_gen_str ] = yAxis_payload
 
