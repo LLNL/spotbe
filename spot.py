@@ -843,7 +843,7 @@ def merge(source, destination):
 
 
 def getData(args):
-    import spotdb.spotdb as spotdb
+    import spotdb
 
     dataset_key = args.dataSetKey
     last_read = args.lastRead or 0
