@@ -45,7 +45,9 @@ class SpotSinaDB(SpotDB):
         self.ds = sina.datastore.connect(filename, read_only=read_only)
 
     def __del__(self):
-        self.ds.close()
+        # throws exceptions for some reason :-(
+        # self.ds.close()
+        pass
 
     def get_all_run_data(self, last_read_time):
         """ Return a dict with region profile and global values for each
@@ -128,6 +130,17 @@ class SpotSinaDB(SpotDB):
             if 'regionprofile' in rec.user_defined:
                 ret[run] = _extract_regionprofile(rec.user_defined['regionprofile'])
 
+        return ret
+
+
+    def get_channel_data(self, channel_name, run_ids):
+        ret = {}
+
+        for run in run_ids:
+            rec = self.ds.records.get(run)
+            if channel_name in rec.user_defined:
+                ret[run] = rec.user_defined[channel_name]
+        
         return ret
 
 
