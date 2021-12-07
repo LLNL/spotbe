@@ -1,18 +1,16 @@
-from spotdb.sinadb import SpotSinaDB
-from spotdb.caliutil import read_caliper_file
+from spotdb.calidirdb import SpotCaliperDirectoryDB
 
 import unittest
 
-class SinaDBTest(unittest.TestCase):
+class CaliDirDBTest(unittest.TestCase):
     def setUp(self):
-        self.db = SpotSinaDB(":memory:")
-
-        for f in [ "0.cali", "1.cali", "2.cali", "3.cali" ]:
-            obj = read_caliper_file("spotdb/tests/data/lulesh_timeseries/"+f)
-            self.db.add(obj)
+        self.db = SpotCaliperDirectoryDB("spotdb/tests/data/lulesh_timeseries")
     
+        runs = self.db.get_all_run_ids()
+        self.db.get_global_data(runs)
 
-    def test_sinadb_metadata(self):
+
+    def test_calidirdb_metadata(self):        
         g = self.db.get_global_attribute_metadata()
 
         self.assertEqual(g["launchdate"     ]["type"], "date")
@@ -27,10 +25,11 @@ class SinaDBTest(unittest.TestCase):
         self.assertEqual(m["avg#loop.iterations/time.duration"]["alias"], "Iter/s")
 
 
-    def test_sinadb_runs(self):
+    def test_calidirdb_runs(self):
         runs = self.db.get_all_run_ids()
 
-        self.assertEqual(len(runs), 4)
+        self.assertTrue(len(runs) > 4)
+        runs = runs[0:4]
 
         g = self.db.get_global_data(runs)
 
@@ -50,10 +49,11 @@ class SinaDBTest(unittest.TestCase):
             self.assertIn("avg#inclusive#sum#time.duration", p[r]["main/lulesh.cycle/LagrangeLeapFrog"])
 
 
-    def test_sinadb_timeseries(self):
+    def test_calidirdb_timeseries(self):
         runs = self.db.get_all_run_ids()
 
-        self.assertEqual(len(runs), 4)
+        self.assertTrue(len(runs) > 4)
+        runs = runs[0:4]
 
         g = self.db.get_global_data(runs)
         t = self.db.get_channel_data("timeseries", runs)
