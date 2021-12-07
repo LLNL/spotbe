@@ -117,6 +117,8 @@ class SpotSinaDB(SpotDB):
         for run in run_ids:
             rec = self.ds.records.get(run)
             globals = { k: v['value'] for k, v in rec.data.items() }
+            if "timeseries" in rec.user_defined:
+                globals["timeseries"] = 1
             ret[run] = globals
 
         return ret
