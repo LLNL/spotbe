@@ -4,7 +4,7 @@ import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
-from .spotdb_base import SpotDB
+from .spotdb_base import SpotDB, SpotDBError
 
 def _extract_regionprofile(regionprofile_records):
     ret = {}
@@ -43,11 +43,30 @@ class SpotSinaDB(SpotDB):
 
     def __init__(self, filename, read_only=False):
         self.ds = sina.datastore.connect(filename, read_only=read_only)
+        self.check_sinadb_version()
 
     def __del__(self):
         # throws exceptions for some reason :-(
         # self.ds.close()
         pass
+
+    def version(self):
+        rec = self.ds.records.get('spot_sinadb_info')
+        return rec.data['version']['value']
+
+    def check_sinadb_version(self):
+        myversion = 1
+        rec_id = 'spot_sinadb_info'
+
+        if self.ds.records.exist(rec_id):
+            version = self.ds.records.get(rec_id).data()['version']
+            if version > myversion:
+                msg = "Database version is {}, code requires {}. Please update spotdb.".format(version, myversion)
+                raise SpotDBError(msg)
+        else:
+            rec = Record(id=rec_id, type=rec_id)
+            rec.add_data('version', myversion)
+            self.ds.records.insert(rec)
 
     def get_all_run_data(self, last_read_time):
         """ Return a dict with region profile and global values for each
@@ -224,3 +243,4 @@ class SpotSinaDB(SpotDB):
         for name in globals.keys():
             if name in attributes:
                 _update_record(name, "caliper_global_attribute", attributes[name])
+    

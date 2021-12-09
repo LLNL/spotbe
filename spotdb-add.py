@@ -5,8 +5,7 @@ import sys
 import subprocess
 
 from spotdb.sinadb import SpotSinaDB
-
-import spotdb.caliutil as cali
+from spotdb.caliutil import read_caliper_file
 
 def _add(dbfile, files):
     db = SpotSinaDB(dbfile, read_only=False)
@@ -14,7 +13,7 @@ def _add(dbfile, files):
     files_to_add = db.filter_existing_entries(files)
 
     for califile in files_to_add:
-        obj = cali.read_caliper_file(califile)
+        obj = read_caliper_file(califile)
         keys = obj.keys()
 
         if 'globals' not in keys or 'records' not in keys:

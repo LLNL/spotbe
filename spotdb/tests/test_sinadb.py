@@ -17,6 +17,8 @@ class SinaDBTest(unittest.TestCase):
     
 
     def test_sinadb_metadata(self):
+        self.assertGreaterEqual(self.db.version(), 1)
+
         g = self.db.get_global_attribute_metadata()
 
         self.assertEqual(g["launchdate"     ]["type"], "date")
