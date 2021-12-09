@@ -59,7 +59,7 @@ class SpotSinaDB(SpotDB):
         rec_id = 'spot_sinadb_info'
 
         if self.ds.records.exist(rec_id):
-            version = self.ds.records.get(rec_id).data()['version']
+            version = self.ds.records.get(rec_id).data['version']['value']
             if version > myversion:
                 msg = "Database version is {}, code requires {}. Please update spotdb.".format(version, myversion)
                 raise SpotDBError(msg)
