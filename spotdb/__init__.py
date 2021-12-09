@@ -1,1 +1,1 @@
-from .spotdb import SpotDB, SpotDBError, connect
+from .spotdb_base import SpotDB, SpotDBError, connect

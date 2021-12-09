@@ -1,14 +1,18 @@
+import spotdb
+
 from spotdb.sinadb import SpotSinaDB
 from spotdb.caliutil import read_caliper_file
 
+import os
 import unittest
 
 class SinaDBTest(unittest.TestCase):
     def setUp(self):
         self.db = SpotSinaDB(":memory:")
+        datadir = os.path.join(os.path.dirname(__file__), "data")
 
         for f in [ "0.cali", "1.cali", "2.cali", "3.cali" ]:
-            obj = read_caliper_file("spotdb/tests/data/lulesh_timeseries/"+f)
+            obj = read_caliper_file(datadir+'/lulesh_timeseries/'+f)
             self.db.add(obj)
     
 

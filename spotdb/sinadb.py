@@ -4,7 +4,7 @@ import sina.datastore
 from sina.utils import DataRange
 from sina.model import Record
 
-from spotdb.spotdb import SpotDB
+from .spotdb_base import SpotDB
 
 def _extract_regionprofile(regionprofile_records):
     ret = {}

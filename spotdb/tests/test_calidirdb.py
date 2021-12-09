@@ -1,10 +1,14 @@
+import spotdb
+
 from spotdb.calidirdb import SpotCaliperDirectoryDB
 
+import os
 import unittest
 
 class CaliDirDBTest(unittest.TestCase):
     def setUp(self):
-        self.db = SpotCaliperDirectoryDB("spotdb/tests/data/lulesh_timeseries")
+        datadir = os.path.join(os.path.dirname(__file__), "data")
+        self.db = SpotCaliperDirectoryDB(datadir+"/lulesh_timeseries")
     
         runs = self.db.get_all_run_ids()
         self.db.get_global_data(runs)

@@ -1,8 +1,7 @@
 import os
 import sys
 
-from .spotdb import SpotDB
-
+from .spotdb_base import SpotDB
 from .caliutil import read_caliper_file
 
 
