@@ -49,6 +49,7 @@ class SpotDB(ABC):
         """
         pass
 
+    @abstractmethod
     def get_regionprofiles(self, run_ids):
         """ Return region profile data for the given list of run ids 
 
@@ -66,6 +67,7 @@ class SpotDB(ABC):
         """
         pass
 
+    @abstractmethod
     def get_channel_data(self, channel_name, run_ids):
         """ Return channel data (e.g., timeseries profile) for the 
             given list of run ids and channel 
@@ -97,7 +99,6 @@ def connect(database_key):
     """
 
     import os
-    import sys
 
     if os.path.isdir(database_key):
         from spotdb.calidirdb import SpotCaliperDirectoryDB
