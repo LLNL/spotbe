@@ -1,7 +1,8 @@
 import os
+from posixpath import dirname
 import sys
 
-from .spotdb_base import SpotDB
+from .spotdb_base import SpotDB, SpotDBError
 from .caliutil import read_caliper_file
 
 
@@ -52,7 +53,10 @@ class SpotCaliperDirectoryDB(SpotDB):
     """
 
     def __init__(self, dirname):
-        self.directory = dirname
+        if not os.path.isdir(dirname):
+            raise SpotDBError("{} is not a directory".format(dirname))
+
+        self.directory = os.path.abspath(dirname)
 
         self.cache = {}
 
@@ -96,29 +100,34 @@ class SpotCaliperDirectoryDB(SpotDB):
 
 
     def get_all_run_ids(self):
-        ret = []
-
-        for (dirname, _, filenames) in os.walk(self.directory):
-            for filename in filenames:
-                if filename.endswith('.cali'):
-                    ret.append(os.path.abspath(os.path.join(dirname, filename)))
-
-        return ret
-
+        return self.get_new_runs(last_read_time=None)
 
     def get_new_runs(self, last_read_time):
         ret = []
 
-        for (dirname, _, filenames) in os.walk(self.directory):
-            for filename in filenames:
-                if not filename.endswith(".cali"):
-                    continue
+        visited = set()
+        for root, dirs, files in os.walk(self.directory, followlinks=True, topdown=True):
+            path = os.path.realpath(root)
+            if path in visited:
+                continue
+            visited.add(path)
 
-                filepath = os.path.abspath(os.path.join(dirname, filename))
-                ctime = os.stat(filepath).st_ctime
+            for d in dirs:
+                if os.path.realpath(os.path.join(path, d)) in visited:
+                    dirs.remove(d)
 
-                if ctime > last_read_time:
-                    ret.append(filepath)
+            for f in files:
+                if f.endswith('.cali'):
+                    filepath = os.path.join(path, f)
+
+                    if last_read_time is not None:
+                        ctime = os.stat(filepath).st_ctime
+                        add = ctime > last_read_time
+                    else:
+                        add = True
+                
+                    if add:
+                        ret.append(filepath)
 
         return ret
 
@@ -160,7 +169,7 @@ class SpotCaliperDirectoryDB(SpotDB):
 
 
     def _read_califile(self, filename):
-        content = read_caliper_file(filename)
+        content = read_caliper_file(os.path.join(self.directory, filename))
 
         if 'spot.format.version' in content['globals']:
             channels = _get_channels(content)
