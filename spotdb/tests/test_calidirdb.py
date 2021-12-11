@@ -32,7 +32,7 @@ class CaliDirDBTest(unittest.TestCase):
     def test_calidirdb_runs(self):
         runs = self.db.get_all_run_ids()
 
-        self.assertTrue(len(runs) > 4)
+        self.assertTrue(len(runs) == 13)
         runs = runs[0:4]
 
         g = self.db.get_global_data(runs)
