@@ -93,7 +93,7 @@ class SpotDB(ABC):
     #     pass
 
 
-def connect(database_key):
+def connect(database_key,read_only=False):
     """ Return a SpotDB object for the given database key 
         (directory or SQL connection string)
     """
@@ -105,7 +105,7 @@ def connect(database_key):
         return SpotCaliperDirectoryDB(database_key)
     elif database_key.endswith(".sqlite") or database_key.startswith("mysql"):
         from spotdb.sinadb import SpotSinaDB
-        return SpotSinaDB(database_key, read_only=True)
+        return SpotSinaDB(database_key, read_only=read_only)
     else:
         raise SpotDBError("Unknown Spot database format: " + database_key)
     
