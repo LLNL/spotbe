@@ -9,24 +9,24 @@ class SpotDBError(Exception):
 
 class SpotDB(ABC):
     """ SpotDB base class """
-    
+
     @abstractmethod
     def get_global_attribute_metadata(self):
-        """ Return a dict with metadata (e.g., data types) for all global 
+        """ Return a dict with metadata (e.g., data types) for all global
             attributes found in the database.
         """
         pass
 
     @abstractmethod
     def get_metric_attribute_metadata(self):
-        """ Return a dict with metadata (e.g., aliases) for all metric 
+        """ Return a dict with metadata (e.g., aliases) for all metric
             attributes found in the database.
         """
         pass
 
     @abstractmethod
     def get_all_run_ids(self):
-        """ Return a list with all run ids in the database 
+        """ Return a list with all run ids in the database
         """
         pass
 
@@ -41,26 +41,26 @@ class SpotDB(ABC):
 
             Structure:
 
-            { 
+            {
                 run_id_1: { "attribute1": value1, "attribute2": value2, ... },
                 run_id_2: { "attribute1": value1, "attribute2": value2, ... },
                 ...
-            } 
+            }
         """
         pass
 
     @abstractmethod
     def get_regionprofiles(self, run_ids):
-        """ Return region profile data for the given list of run ids 
+        """ Return region profile data for the given list of run ids
 
             Structure:
 
             {
-                run_id_1: 
-                    { 
-                        "main":     { "metric": val, ... }, 
-                        "main/foo": { "metric": val, ... }, 
-                        ... 
+                run_id_1:
+                    {
+                        "main":     { "metric": val, ... },
+                        "main/foo": { "metric": val, ... },
+                        ...
                     },
                 run_id_2: { ... }, ...
             }
@@ -69,20 +69,20 @@ class SpotDB(ABC):
 
     @abstractmethod
     def get_channel_data(self, channel_name, run_ids):
-        """ Return channel data (e.g., timeseries profile) for the 
-            given list of run ids and channel 
+        """ Return channel data (e.g., timeseries profile) for the
+            given list of run ids and channel
 
             Structure:
 
             {
-                run_id_1: [ 
+                run_id_1: [
                     { "attribute": "value", ... },
                     { "attribute": "value", ... },
                     ...
                 ],
                 run_id_2: [
                     ...
-                ], 
+                ],
                 ...
             }
         """
@@ -94,7 +94,7 @@ class SpotDB(ABC):
 
 
 def connect(database_key,read_only=False):
-    """ Return a SpotDB object for the given database key 
+    """ Return a SpotDB object for the given database key
         (directory or SQL connection string)
     """
 
@@ -108,4 +108,3 @@ def connect(database_key,read_only=False):
         return SpotSinaDB(database_key, read_only=read_only)
     else:
         raise SpotDBError("Unknown Spot database format: " + database_key)
-    

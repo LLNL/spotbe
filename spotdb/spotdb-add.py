@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import json
 import sys
-import subprocess
 
 from spotdb.sinadb import SpotSinaDB
 from spotdb.caliutil import read_caliper_file
