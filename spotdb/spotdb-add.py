@@ -2,15 +2,18 @@
 
 import sys
 
+from tqdm import tqdm
+
 from spotdb.sinadb import SpotSinaDB
 from spotdb.caliutil import read_caliper_file
+from spotdb.sqlutil import make_sql_uri_from_cnf
 
 def _add(dbfile, files):
     db = SpotSinaDB(dbfile, read_only=False)
 
     files_to_add = db.filter_existing_entries(files)
 
-    for califile in files_to_add:
+    for califile in tqdm(files_to_add,unit="files",dynamic_ncols=True):
         obj = read_caliper_file(califile)
         keys = obj.keys()
 
@@ -45,13 +48,15 @@ def main():
         help()
         sys.exit()
 
-    dbfile = args.pop()
+    uri = args.pop()
+    if uri.endswith(".cnf"):
+        uri = make_sql_uri_from_cnf(uri)
 
-    if not (dbfile.endswith('.sqlite') or dbfile.startswith('mysql')):
-        msg = 'spotdb-add: Expected SQLite DB file (.sqlite) or SQL connection string ("mysql...") as last argument. Got ' + dbfile + '.'
+    if not (uri.endswith('.sqlite') or uri.startswith('mysql')):
+        msg = 'spotdb-add: Expected SQLite file (.sqlite), SQL URI ("mysql..."), or MySQL config file (.cnf) as last argument. Got ' + uri + '.'
         sys.exit(msg)
 
-    _add(dbfile, args)
+    _add(uri, args)
 
 
 if __name__ == "__main__":
