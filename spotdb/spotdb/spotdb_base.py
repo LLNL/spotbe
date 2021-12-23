@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import re
 
 class SpotDBError(Exception):
     """ SpotDB Error base class """
@@ -93,6 +94,31 @@ class SpotDB(ABC):
     #     pass
 
 
+def _make_sql_uri_from_cnf(filename):
+    """Construct a MySQL DB URI from a MySQL .cnf file
+    """
+    import configparser
+
+    parser = configparser.ConfigParser(allow_no_value=True)
+    parser.read(filename)
+
+    config = parser["client"] if "client" in parser else parser
+
+    args = []
+
+    # Needed for LLNL spotdb config
+    if "ssl_verify_cert" not in config:
+        args.append("ssl_verify_cert=false")
+    
+    args.append("read_default_file=" + filename)
+
+    uri  = "mysql+pymysql://" + config["host"] + "/"
+    if (len(args) > 0):
+        uri += "?" + "&".join(args)
+
+    return uri
+
+
 def connect(database_key,read_only=False):
     """ Return a SpotDB object for the given database key
         (directory or SQL connection string)
@@ -106,5 +132,9 @@ def connect(database_key,read_only=False):
     elif database_key.endswith(".sqlite") or database_key.startswith("mysql"):
         from spotdb.sinadb import SpotSinaDB
         return SpotSinaDB(database_key, read_only=read_only)
+    elif database_key.endswith(".cnf"):
+        from spotdb.sinadb import SpotSinaDB
+        uri = _make_sql_uri_from_cnf(database_key)
+        return SpotSinaDB(uri, read_only=read_only)
     else:
         raise SpotDBError("Unknown Spot database format: " + database_key)
