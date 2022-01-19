@@ -7,8 +7,6 @@ from pprint import pprint
 from datetime import datetime
 import sys
 
-sys.path.append('/usr/gapps/spot/sand')
-sys.path.append('/usr/gapps/spot/sand/spotdb')
 
 
 def get_deploy_dir():
@@ -28,6 +26,10 @@ def get_deploy_dir():
 # print( get_deploy_dir() )
 
 dd = get_deploy_dir()
+
+sys.path.append(dd)
+sys.path.append(dd + '/spotdb')
+
 architecture = platform.uname().machine
 cali_query_path = dd + 'caliper/' + architecture + '/bin'
 cali_query_replace = dd + 'caliper/\\" + machine + \\"/bin'
