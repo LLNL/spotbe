@@ -63,6 +63,12 @@ class SpotCaliperDirectoryDB(SpotDB):
         self.global_metadata = {}
         self.metric_metadata = {}
 
+        self.num_skipped_files = 0
+
+    def __del__(self):
+        if self.num_skipped_files > 0:
+            print("spotdb: Skipped {} files w/o \"spot.metrics\" attribute".format(self.num_skipped_files),
+                  file=sys.stderr)
 
     def get_global_attribute_metadata(self):
         result = {}
@@ -171,13 +177,15 @@ class SpotCaliperDirectoryDB(SpotDB):
     def _read_califile(self, filename):
         content = read_caliper_file(os.path.join(self.directory, filename))
 
-        if 'spot.format.version' in content['globals']:
+        if 'spot.metrics' in content['globals']:
             channels = _get_channels(content)
             if 'timeseries' in channels:
                 content["globals"]["timeseries"] = 1
 
             self.cache[filename] = content
             self._update_metadata(content["globals"], content["attributes"])
+        else:
+            self.num_skipped_files += 1
 
 
     def _update_metadata(self, globals, attributes):
