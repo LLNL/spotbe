@@ -1,10 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/gapps/spot/venv_python/bin/python3
 
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
 from pprint import pprint
 
 from datetime import datetime
+import sys
+
+sys.path.append('/usr/gapps/spot/sand')
+sys.path.append('/usr/gapps/spot/sand/spotdb')
+
 
 def get_deploy_dir():
     is_live = 1
