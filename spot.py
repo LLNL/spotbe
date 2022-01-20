@@ -131,7 +131,9 @@ def get_jupyter_info():
 def getTemplates(args):
     from CustomTemplates import CustomTemplates
 
-    ct = CustomTemplates()
+    dd = get_deploy_dir()
+    ct = CustomTemplates( dd )
+
     templates = ct.get( args.cali_filepath )
     return templates
 

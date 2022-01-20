@@ -3,9 +3,11 @@ import glob, os, json
 
 class CustomTemplates:
 
-    def __init__(self):
+    def __init__(self, deploy_dir):
         self.notebooks = []
         self.multi_notebooks = []
+        self.deploy_dir = deploy_dir
+
 
     def get(self, sf):
         self.get_files(sf)
@@ -48,10 +50,10 @@ class CustomTemplates:
 
     def check_templates_dir(self):
 
-        temps_dir = "/usr/gapps/spot/templates/single"
+        temps_dir = self.deploy_dir + "/templates/single"
         self.check_dir(temps_dir, self.notebooks)
 
-        multi_dir = "/usr/gapps/spot/templates/multi"
+        multi_dir = self.deploy_dir + "/templates/multi"
         self.check_dir(multi_dir, self.multi_notebooks)
 
 
