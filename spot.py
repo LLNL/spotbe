@@ -577,7 +577,7 @@ def _get_sina_data(database, lastRead):
         }
 
 
-def memoryGraph(args):
+def getTimeseriesData(args):
 
     cali_path = args.cali_filepath
 
@@ -943,7 +943,7 @@ if __name__ == "__main__":
     memory_sub = subparsers.add_parser("memory")
     memory_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     #memory_sub.add_argument("count", help="enter memory count")
-    memory_sub.set_defaults(func=memoryGraph)
+    memory_sub.set_defaults(func=getTimeseriesData)
 
     getTemplates_sub = subparsers.add_parser("getTemplates")
     getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
