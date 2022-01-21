@@ -940,10 +940,9 @@ if __name__ == "__main__":
     parser.add_argument("--ci_testing", help="get notebook path for CI tests", action="store_true")
     subparsers = parser.add_subparsers(dest="sub_name")
 
-    memory_sub = subparsers.add_parser("memory")
-    memory_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-    #memory_sub.add_argument("count", help="enter memory count")
-    memory_sub.set_defaults(func=getTimeseriesData)
+    timeseries_sub = subparsers.add_parser("getTimeseriesData")
+    timeseries_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
+    timeseries_sub.set_defaults(func=getTimeseriesData)
 
     getTemplates_sub = subparsers.add_parser("getTemplates")
     getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
