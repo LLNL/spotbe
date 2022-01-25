@@ -584,11 +584,12 @@ def getTimeseriesData(args):
     import spotdb
     db = spotdb.connect(args.dataset)
     data = db.get_channel_data("timeseries", [ args.run_id ])
+    meta = db.get_metric_attribute_metadata()
 
     output = {}
 
     if run_id in data:
-        output["series"] = data[run_id]
+        output["series"] = { "records": data[run_id], "attributes": meta }
         output["cali_path"] = run_id
 
     json.dump(output, sys.stdout)
