@@ -13,6 +13,14 @@ def _read_cali_with_caliquery(filename):
 
     return json.loads(cmdout)
 
+def _make_value(attribute, val):
+    type = attribute.attribute_type()
+    if type == 'int' or type == 'uint':
+        return int(val)
+    elif type == 'double':
+        return float(val)
+    else:
+        return val
 
 def _make_string_from_list(list_or_elem):
     if isinstance(list_or_elem, list):
@@ -20,24 +28,27 @@ def _make_string_from_list(list_or_elem):
     else:
         return list_or_elem
 
-
 def _filter_cali_profile_record(reader, record):
     """ Filter useful data out of the profiling records
     """
 
     channel = record.get("spot.channel", "regionprofile")
     out = { "spot.channel" : channel }
+    out["path"] = _make_string_from_list(record.pop("path", ""))
 
     if channel == "regionprofile":
-        out["path"] = _make_string_from_list(record.pop("path", ""))
-
         # only include metrics
         for k, v in record.items():
-            if reader.attribute(k).is_value():
-                out[k] = v
+            attr = reader.attribute(k)
+            if attr.is_value():
+                out[k] = _make_value(attr, v)
     else:
         for k, v in record.items():
-            out[k] = _make_string_from_list(v)
+            attr = reader.attribute(k)
+            if attr.is_value():
+                out[k] = _make_value(attr, v)
+            else:
+                out[k] = _make_string_from_list(v)
 
     return out
 
