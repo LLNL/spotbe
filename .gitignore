@@ -3,6 +3,7 @@ caliper2/
 datasets/
 generate_spot2_url
 hatchet/
+hatchet-venv/
 .ipynb_checkpoints/
 __pycache__
 venv
