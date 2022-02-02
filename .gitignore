@@ -4,6 +4,7 @@ datasets/
 generate_spot2_url
 hatchet/
 hatchet-venv/
+hatchet-venv-ppc/
 .ipynb_checkpoints/
 __pycache__
 venv
