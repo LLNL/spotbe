@@ -238,8 +238,6 @@ def multi_jupyter(args):
 
     update_usage_file("multi_jupyter")
 
-    print("uri: {} keys: {}".format(args.cali_filepath, args.cali_keys))
-
     #  - first create directory
     spotdb_uri = args.cali_filepath
     cali_keys = json.loads(args.cali_keys)
