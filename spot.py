@@ -22,6 +22,7 @@ def get_deploy_dir():
     return pre_dir + deploy_dir
 
 
+
 # print( get_deploy_dir() )
 
 dd = get_deploy_dir()
@@ -42,7 +43,7 @@ cali_query_replace = dd + 'caliper/\\" + machine + \\"/bin'
 
 CONFIG = { 'caliquery': cali_query_path + '/cali-query'
          , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
-         , 'multi_template_notebook': dd + 'templates/TemplateNotebook_hatchet-manycali.ipynb'
+         , 'multi_template_notebook': dd + 'templates/TemplateNotebook_HatchetSpotDB.ipynb'
          , 'jupyter_port': 0
          , 'jupyter_host': ''
          , 'jupyter_lookup_host': False
@@ -144,7 +145,7 @@ def getTemplates(args):
     return templates
 
 
-def multi_jupyter(args):
+def _multi_jupyter_old(args):
 
     update_usage_file("multi_jupyter")
 
@@ -225,6 +226,68 @@ def multi_jupyter(args):
 
         dd = get_deploy_dir()
         ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
+
+        open(ntbk_path, 'w').write(ntbk_template_str)
+
+        # return Jupyterhub address
+        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
+        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
+
+        if args.ci_testing:
+            print(ntbk_path)
+        else:
+            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
+
+
+def multi_jupyter(args):
+
+    update_usage_file("multi_jupyter")
+
+    #  - first create directory
+    spotdb_uri = args.cali_filepath
+    cali_keys = json.loads(args.cali_keys)
+    spotdb_record_ids = ','.join(cali_keys)
+    isContainer = args.container
+    custom_template = args.custom_template
+
+    template_to_open = CONFIG['multi_template_notebook']
+
+    if custom_template:
+        template_to_open = custom_template
+
+    if isContainer:
+        ntbk_template_str = (open(template_to_open).read()
+                                .replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
+                                .replace('SPOT_SPOTDB_URI', spotdb_uri)
+                                .replace('SPOT_DEPLOY_DIR', '/usr/gapps/spot')
+                            )
+
+        name_md5 = hashlib.md5(spotdb_record_ids.encode('utf-8')).digest()
+        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
+        fullpath = '/notebooks/spot/m{}.ipynb'.format(name)
+        try:
+            os.umask(0o133)
+            open(fullpath, 'w').write(ntbk_template_str)
+        except:
+            pass
+
+        jsonret = get_jupyter_info()
+        jsonret["path"] = fullpath
+        print(json.dumps(jsonret))
+
+    else:
+        ntbk_dir = os.path.expanduser('~/spot_jupyter')
+        try:
+            os.mkdir(ntbk_dir)
+        except: pass
+
+        ntbk_path = os.path.join(ntbk_dir, 'combo.ipynb')
+        ntbk_template_str = open(template_to_open).read()
+        ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_URI', spotdb_uri )
+        ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
+
+        dd = get_deploy_dir()
+        ntbk_template_str = ntbk_template_str.replace('SPOT_DEPLOY_DIR', dd)
 
         open(ntbk_path, 'w').write(ntbk_template_str)
 
