@@ -30,6 +30,11 @@ sys.path.append(dd)
 sys.path.append(dd + '/spotdb')
 sys.path.append('/usr/gapps/spot/venv_python/lib/python3.7/site-packages')
 
+#  this will handle the case where: No module found named "spotdb", "caliperreader"
+#  for container
+sys.path.append('/usr/gapps/spot/spotdb')
+sys.path.append('/usr/gapps/spot/Caliper/python/caliper-reader')
+
 
 architecture = platform.uname().machine
 cali_query_path = dd + 'caliper/' + architecture + '/bin'
