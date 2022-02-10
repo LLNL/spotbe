@@ -251,14 +251,14 @@ def multi_jupyter(args):
     custom_template = args.custom_template
 
     template_to_open = CONFIG['multi_template_notebook']
-    metric_name = defaultKey(str(spotdb_uri))
+#    metric_name = defaultKey(str(spotdb_uri))
 
     if custom_template:
         template_to_open = custom_template
 
     if isContainer:
         ntbk_template_str = (open(template_to_open).read()
-                                .replace('CALI_METRIC_NAME', str(metric_name))
+#                                .replace('CALI_METRIC_NAME', str(metric_name))
                                 .replace('CALI_FILE_NAME', str(spotdb_uri))
                                 .replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
                                 .replace('SPOT_SPOTDB_URI', spotdb_uri)
@@ -286,6 +286,7 @@ def multi_jupyter(args):
 
         ntbk_path = os.path.join(ntbk_dir, 'combo.ipynb')
         ntbk_template_str = open(template_to_open).read()
+        ntbk_template_str = ntbk_template_str.replace('CALI_FILE_NAME', str(spotdb_uri))
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_URI', spotdb_uri )
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
 
