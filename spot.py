@@ -42,7 +42,7 @@ cali_query_path = dd + 'caliper/' + architecture + '/bin'
 cali_query_replace = dd + 'caliper/\\" + machine + \\"/bin'
 
 CONFIG = { 'caliquery': cali_query_path + '/cali-query'
-         , 'template_notebook': dd + 'templates/TemplateNotebook_hatchet-singlecali.ipynb'
+         , 'template_notebook': dd + 'templates/TemplateNotebook_HatchetSpotDBSingle.ipynb'
          , 'multi_template_notebook': dd + 'templates/TemplateNotebook_HatchetSpotDB.ipynb'
          , 'jupyter_port': 0
          , 'jupyter_host': ''
@@ -250,11 +250,15 @@ def multi_jupyter(args):
     isContainer = args.container
     custom_template = args.custom_template
 
-    template_to_open = CONFIG['multi_template_notebook']
+    template_to_open = ""
 #    metric_name = defaultKey(str(spotdb_uri))
 
     if custom_template:
         template_to_open = custom_template
+    elif len(cali_keys) > 1:
+        template_to_open = CONFIG['multi_template_notebook']
+    else:
+        template_to_open = CONFIG['template_notebook']
 
     if isContainer:
         ntbk_template_str = (open(template_to_open).read()
