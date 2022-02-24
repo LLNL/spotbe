@@ -251,7 +251,7 @@ def multi_jupyter(args):
     custom_template = args.custom_template
 
     template_to_open = ""
-#    metric_name = defaultKey(str(spotdb_uri))
+    #metric_name = defaultKey(str(spotdb_uri))
 
     if custom_template:
         template_to_open = custom_template
@@ -262,7 +262,7 @@ def multi_jupyter(args):
 
     if isContainer:
         ntbk_template_str = (open(template_to_open).read()
-#                                .replace('CALI_METRIC_NAME', str(metric_name))
+                                .replace('CALI_METRIC_NAME', "CALI_METRIC_NAME is no longer supported")
                                 .replace('CALI_FILE_NAME', str(spotdb_uri))
                                 .replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
                                 .replace('SPOT_SPOTDB_URI', spotdb_uri)
@@ -290,9 +290,11 @@ def multi_jupyter(args):
 
         ntbk_path = os.path.join(ntbk_dir, 'combo.ipynb')
         ntbk_template_str = open(template_to_open).read()
+        ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', "the CALI_METRIC_NAME substitution is no longer supported.")
         ntbk_template_str = ntbk_template_str.replace('CALI_FILE_NAME', str(spotdb_uri))
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_URI', spotdb_uri )
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
+        ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', '"CALI_FILES = \'MULTI_CALI_FILES no longer supported.\'   \\n"')
 
         dd = get_deploy_dir()
         ntbk_template_str = ntbk_template_str.replace('SPOT_DEPLOY_DIR', dd)
