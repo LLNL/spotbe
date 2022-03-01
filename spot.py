@@ -940,20 +940,7 @@ def merge(source, destination):
 
     return destination
 
-
-def getData(args):
-    import spotdb
-    from os.path import exists
-
-    dataset_key = args.dataSetKey
-    last_read = args.lastRead or 0
-
-    file_exists = exists( dataset_key )
-
-    if not file_exists:
-
-        error_message = "The input file: " + dataset_key + " does not exist."
-
+def errorOut( error_message ):
         out = {
             "error": error_message,
             "output": "",
@@ -961,6 +948,29 @@ def getData(args):
         }
 
         return json.dump( out, sys.stdout )
+
+
+def getData(args):
+    import spotdb
+
+    dataset_key = args.dataSetKey
+    last_read = args.lastRead or 0
+
+
+    from os.path import exists
+    import os
+
+    file_exists = exists( dataset_key )
+    have_permission = os.access( dataset_key, os.R_OK)
+
+    if not have_permission:
+        error_message = "You do not have permission to read the input file: " + dataset_key + "."
+        return errorOut( error_message )
+
+    if not file_exists:
+
+        error_message = "The input file: " + dataset_key + " does not exist."
+        return errorOut( error_message )
 
 
     db = spotdb.connect(dataset_key, read_only=True)
