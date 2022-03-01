@@ -1,5 +1,6 @@
 
 import json, sys
+from pprint import pprint
 
 class ErrorHandling:
 
@@ -15,7 +16,8 @@ class ErrorHandling:
             }
 
             err = "ERROR: " + error_message
-            return json.dump( err, sys.stdout )
+            ret = json.dump( err, sys.stdout )
+            return ret
 
 
         def check_file( self, filename ):
