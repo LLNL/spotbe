@@ -14,7 +14,8 @@ class ErrorHandling:
                 "status": "ERROR"
             }
 
-            return json.dump( out, sys.stdout )
+            err = "ERROR: " + error_message
+            return json.dump( err, sys.stdout )
 
 
         def check_file( self, filename ):
