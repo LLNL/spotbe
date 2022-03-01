@@ -943,9 +943,25 @@ def merge(source, destination):
 
 def getData(args):
     import spotdb
+    from os.path import exists
 
     dataset_key = args.dataSetKey
     last_read = args.lastRead or 0
+
+    file_exists = exists( dataset_key )
+
+    if not file_exists:
+
+        error_message = "The input file: " + dataset_key + " does not exist."
+
+        out = {
+            "error": error_message,
+            "output": "",
+            "status": "ERROR"
+        }
+
+        return json.dump( out, sys.stdout )
+
 
     db = spotdb.connect(dataset_key, read_only=True)
 
