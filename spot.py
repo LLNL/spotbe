@@ -34,7 +34,10 @@ sys.path.append('/usr/gapps/spot/venv_python/lib/python3.7/site-packages')
 #  this will handle the case where: No module found named "spotdb", "caliperreader"
 #  for container
 sys.path.append('/usr/gapps/spot/spotdb')
-sys.path.append('/usr/gapps/spot/Caliper/python/caliper-reader')
+#sys.path.append('/usr/gapps/spot/Caliper/python/caliper-reader')
+
+#  this is where the new caliper-reader is located.
+sys.path.append('/usr/local/lib/python3.8/dist-packages')
 
 
 architecture = platform.uname().machine
