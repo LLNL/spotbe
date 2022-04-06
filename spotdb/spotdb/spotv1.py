@@ -69,7 +69,7 @@ def read_spot_v1_contents(filename):
             # values are 2d arrays like: [ [ 0, 0.5 ], [ 0, 1.0, ], ... ]
             # We assume the outer dimension is the run, and the second element
             # in the inner dimension is the value.
-            if (len(values) > i):
+            if (len(values) > i and isinstance(values[i], list) and len(values[i]) >= 2):
                 records.append({ 'path': funcpath, 'time': values[i][1] })
         
         result[key] = { 'globals': globals, 'records': records }
