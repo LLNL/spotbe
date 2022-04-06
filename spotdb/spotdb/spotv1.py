@@ -11,7 +11,7 @@ def get_spot_v1_attribute_metadata():
     }
 
     metrics = {
-        'time'       : { 'type': 'double', 'unit': 'usec' }
+        'avg#inclusive#sum#time.duration' : { 'type': 'double', 'attribute.unit': 'sec', 'attribute.alias': 'Avg time/rank' }
     }
 
     return (globals, metrics)
@@ -70,7 +70,7 @@ def read_spot_v1_contents(filename):
             # We assume the outer dimension is the run, and the second element
             # in the inner dimension is the value.
             if (len(values) > i and isinstance(values[i], list) and len(values[i]) >= 2):
-                records.append({ 'path': funcpath, 'time': values[i][1] })
+                records.append({ 'path': funcpath, 'avg#inclusive#sum#time.duration': values[i][1] })
         
         result[key] = { 'globals': globals, 'records': records }
     
