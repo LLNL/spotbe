@@ -4,6 +4,7 @@ import sys
 
 from .spotdb_base import SpotDB, SpotDBError
 from .caliutil import read_caliper_file
+from .spotv1 import read_spot_v1_contents, is_spot_v1_file, get_spot_v1_attribute_metadata
 
 
 def _extract_channel_data(records, channel_name):
@@ -108,6 +109,7 @@ class SpotCaliperDirectoryDB(SpotDB):
     def get_all_run_ids(self):
         return self.get_new_runs(last_read_time=None)
 
+
     def get_new_runs(self, last_read_time):
         ret = []
 
@@ -123,9 +125,9 @@ class SpotCaliperDirectoryDB(SpotDB):
                     dirs.remove(d)
 
             for f in files:
-                if f.endswith('.cali'):
-                    filepath = os.path.join(path, f)
+                filepath = os.path.join(path, f)
 
+                if f.endswith('.cali'):
                     if last_read_time is not None:
                         ctime = os.stat(filepath).st_ctime
                         add = ctime > last_read_time
@@ -134,6 +136,14 @@ class SpotCaliperDirectoryDB(SpotDB):
                 
                     if add:
                         ret.append(filepath)
+                elif f.endswith('.json'):
+                    if is_spot_v1_file(filepath):
+                        runs = self._read_spotv1(filepath)
+
+                        if last_read_time is not None:
+                            ret += [ r for r in runs if self.cache[r]["globals"]["launchdate"] > last_read_time ]
+                        else:
+                            ret += runs
 
         return ret
 
@@ -186,6 +196,22 @@ class SpotCaliperDirectoryDB(SpotDB):
             self._update_metadata(content["globals"], content["attributes"])
         else:
             self.num_skipped_files += 1
+    
+
+    def _read_spotv1(self, filename):
+        content = read_spot_v1_contents(filename)
+
+        for key, data in content.items():
+            self.cache[key] = data
+        
+        (global_info, metric_info) = get_spot_v1_attribute_metadata()
+
+        globals = { k: "" for k in global_info.keys() }
+        globals['spot.metrics'] = ','.join(metric_info.keys())
+      
+        self._update_metadata(globals, { **global_info, **metric_info })
+
+        return list(content.keys())
 
 
     def _update_metadata(self, globals, attributes):
