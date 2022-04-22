@@ -228,77 +228,6 @@ def update_usage_file(op):
         pass
 
 
-def jupyter(args):
-
-    update_usage_file("jupyter")
-
-    # create notebook in ~/spot_jupyter dir
-
-    #  - first create directory
-    cali_path = args.cali_filepath
-    isContainer = args.container
-    custom_template = args.custom_template
-
-    template_to_open = CONFIG['template_notebook']
-
-    if custom_template:
-        template_to_open = custom_template
-
-    if isContainer:
-        metric_name = defaultKey(str(cali_path))
-
-        unique_name = cali_path + ':' + metric_name
-        name_md5 = hashlib.md5(unique_name.encode('utf-8')).digest()
-        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
-        ntbk_fullpath = '/notebooks/spot/s{}.ipynb'.format(name)
-
-        ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
-
-        try:
-            os.umask(0o133)
-            open(ntbk_fullpath, 'w').write(ntbk_template_str)
-        except:
-            pass
-
-        jsonret = get_jupyter_info()
-        jsonret["path"] = ntbk_fullpath
-        print(json.dumps(jsonret))
-
-    else:
-        ntbk_dir = os.path.expanduser('~/spot_jupyter')
-        try:
-            os.mkdir(ntbk_dir)
-        except: pass
-
-        metric_name = defaultKey(str(cali_path))
-
-        ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
-        ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-
-        try:
-            ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-        except Exception as e:
-            print(e)
-
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
-
-        dd = get_deploy_dir()
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
-
-        open(ntbk_path, 'w').write(ntbk_template_str)
-
-        # return Jupyterhub address
-        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
-        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
-
-        if args.ci_testing:
-            print(ntbk_path)
-        else:
-            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
-
-
 def _prependDir(dirpath, fnames):
     return [os.path.join(dirpath, fname) for fname in fnames]
 
@@ -433,52 +362,6 @@ def getData(args):
     return json.dump(output, sys.stdout)
 
 
-def getRun(runId, db=None):
-    # sql database
-    if db:
-        if db.endswith('.yaml'):
-            import yaml
-            import mysql.connector
-            dbConfig = yaml.load(open(db), Loader=yaml.FullLoader)
-            mydb = mysql.connector.connect(**dbConfig)
-            db_placeholder = "%s"
-        else:
-            import sqlite3
-            mydb = sqlite3.connect(db)
-            db_placeholder = "?"
-
-        cursor = mydb.cursor()
-
-        # get run
-        cursor.execute('SELECT globals, records FROM Runs Where run = ' + db_placeholder, (runId,))
-        rec = next(cursor)
-        runGlobals = json.loads(rec[0])
-        runData = json.loads(rec[1])
-        output = {'records': runData, 'globals': runGlobals}
-
-    # .cali file directory
-    else:
-        output = _cali_to_json(runId)
-        del output['attributes']
-    return output
-
-
-def getHatchetLiteral(runId, db=None):
-    funcPathDict = {line.pop('path'): line for line in getRun(runId, db)['records'] if line.get('path', None)}
-
-    def buildTree(nodeName):
-        node = {}
-        node['name'] = nodeName.split('/')[-1]
-        node['metrics'] = funcPathDict[nodeName]
-        childrenPaths = [childPath for childPath in funcPathDict.keys()
-                         if len(childPath.split('/')) == len(nodeName.split('/')) + 1 and childPath.startswith(nodeName)]
-        if childrenPaths:
-            node['children'] = [buildTree(childPath) for childPath in childrenPaths]
-        return node
-
-    return [buildTree(min(funcPathDict.keys()))]
-
-
 if __name__ == "__main__":
 
     # argparse
@@ -496,11 +379,6 @@ if __name__ == "__main__":
     getTemplates_sub = subparsers.add_parser("getTemplates")
     getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     getTemplates_sub.set_defaults(func=getTemplates)
-
-    jupyter_sub = subparsers.add_parser("jupyter")
-    jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-    jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
-    jupyter_sub.set_defaults(func=jupyter)
 
     getCacheFileDate_sub = subparsers.add_parser("getCacheFileDate")
     getCacheFileDate_sub.set_defaults(func=getCacheFileDate)
@@ -520,11 +398,6 @@ if __name__ == "__main__":
     getData_sub.add_argument("--maxLevels",  help="specify number of levels to show for flamecharts")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
-
-    getRun_sub = subparsers.add_parser("getRun")
-    getRun_sub.add_argument("runId",  help="filepath or db run number")
-    getRun_sub.add_argument("--db",  help="yaml config file, or sqlite DB")
-    getRun_sub.set_defaults(func=lambda args: json.dump(getRun(args.runId, args.db), sys.stdout, indent=4))
 
     getDictionary_sub = subparsers.add_parser("getDictionary")
     getDictionary_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
