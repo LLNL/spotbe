@@ -66,12 +66,6 @@ def _cali_to_json(filepath):
     cali_json = _sub_call([CONFIG['caliquery'] , '-q', 'format json(object)', filepath])
     return cali_json
 
-def _cali_timeseries_to_json(filepath):
-    
-    query = 'format json(object) where spot.channel=timeseries'
-    cali_json = _sub_call([CONFIG['caliquery'] , '-q', query, filepath])
-    return cali_json
-
 
 def defaultKey(filepath):
 
@@ -112,13 +106,13 @@ def get_jupyter_info():
             if not candidates or len(candidates) > 1:
                 return {}
             path = os.path.join(dir, candidates[0])
-    
+
         try:
             jsonstr = open(path, 'r').read()
             jdict = json.loads(jsonstr)
         except:
             pass
-          
+
     resultdict = {}
     if use_token:
         if not token:
@@ -148,100 +142,6 @@ def getTemplates(args):
     return templates
 
 
-def _multi_jupyter_old(args):
-
-    update_usage_file("multi_jupyter")
-
-    # create notebook in ~/spot_jupyter dir
-
-    #  - first create directory
-    cali_path = args.cali_filepath
-    cali_keys = json.loads(args.cali_keys)
-    isContainer = args.container
-    custom_template = args.custom_template
-
-    template_to_open = CONFIG['multi_template_notebook']
-
-    if custom_template:
-        template_to_open = custom_template
-
-    if isContainer:
-        multi_cali_files = [{ 'cali_file'  : os.path.join(cali_path, cali_key)
-                            , 'metric_name': defaultKey(os.path.join(cali_path, cali_key))
-                            } 
-                              for cali_key in cali_keys
-                           ]
-
-        ntbk_template_str = (open(template_to_open).read()
-                                .replace('MUTLI_CALI_FILES', '"CALI_FILES = {}\\n"'.format(json.dumps(multi_cali_files, indent=2).replace('"', '\\"').replace('\n','\\n')))
-                                .replace('CALI_METRIC_NAME', multi_cali_files[0]['metric_name'])
-                                .replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
-                                .replace('DEPLOY_DIR', '/usr/gapps/spot/')
-                            )
-
-        name_md5 = hashlib.md5(json.dumps(multi_cali_files, sort_keys=True).encode('utf-8')).digest()
-        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
-        fullpath = '/notebooks/spot/m{}.ipynb'.format(name)
-        try:
-            os.umask(0o133)
-            open(fullpath, 'w').write(ntbk_template_str)
-        except:
-            pass
-
-        jsonret = get_jupyter_info()
-        jsonret["path"] = fullpath
-        print(json.dumps(jsonret))
-
-    else:
-        ntbk_dir = os.path.expanduser('~/spot_jupyter')
-        try:
-            os.mkdir(ntbk_dir)
-        except: pass
-
-        #  - copy template (replacing CALI_FILE_NAME)
-        #metric_name = defaultKey(str(cali_path))
-        path = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ]
-        path = "combo"
-
-        line_strs = '"CALI_FILES = [ '
-        loop0 = 0
-        first_metric_name = ""
-
-        for i in sorted(cali_keys):
-            full_c_path = cali_path + '/' + i
-            metric_name = defaultKey(str(full_c_path))
-
-            if loop0 == 0:
-                first_metric_name = metric_name
-
-            dira = cali_path + '/' + i
-            line_strs = line_strs + '\\n { \\"cali_file\\": \\"' + dira + '\\", \\"metric_name\\": \\"' + metric_name + '\\"}, '
-            loop0 = loop0 + 1
-
-
-        line_strs = line_strs + '\\n]\\n"'
-
-        ntbk_path = os.path.join(ntbk_dir, path + '.ipynb')
-        ntbk_template_str = open(template_to_open).read()
-        ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', line_strs )
-        ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', str(first_metric_name))
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
-
-        dd = get_deploy_dir()
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
-
-        open(ntbk_path, 'w').write(ntbk_template_str)
-
-        # return Jupyterhub address
-        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
-        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
-
-        if args.ci_testing:
-            print(ntbk_path)
-        else:
-            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
-
-
 def multi_jupyter(args):
 
     update_usage_file("multi_jupyter")
@@ -265,7 +165,6 @@ def multi_jupyter(args):
 
     if isContainer:
         ntbk_template_str = (open(template_to_open).read()
-                                .replace('CALI_METRIC_NAME', "CALI_METRIC_NAME is no longer supported")
                                 .replace('CALI_FILE_NAME', str(spotdb_uri))
                                 .replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
                                 .replace('SPOT_SPOTDB_URI', spotdb_uri)
@@ -293,11 +192,9 @@ def multi_jupyter(args):
 
         ntbk_path = os.path.join(ntbk_dir, 'combo.ipynb')
         ntbk_template_str = open(template_to_open).read()
-        ntbk_template_str = ntbk_template_str.replace('CALI_METRIC_NAME', "the CALI_METRIC_NAME substitution is no longer supported.")
         ntbk_template_str = ntbk_template_str.replace('CALI_FILE_NAME', str(spotdb_uri))
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_URI', spotdb_uri )
         ntbk_template_str = ntbk_template_str.replace('SPOT_SPOTDB_RECORD_IDS', spotdb_record_ids)
-        ntbk_template_str = ntbk_template_str.replace('MUTLI_CALI_FILES', '"CALI_FILES = \'MULTI_CALI_FILES no longer supported.\'   \\n"')
 
         dd = get_deploy_dir()
         ntbk_template_str = ntbk_template_str.replace('SPOT_DEPLOY_DIR', dd)
@@ -331,332 +228,8 @@ def update_usage_file(op):
         pass
 
 
-def jupyter(args):
-
-    update_usage_file("jupyter")
-
-    # create notebook in ~/spot_jupyter dir
-
-    #  - first create directory
-    cali_path = args.cali_filepath
-    isContainer = args.container
-    custom_template = args.custom_template
-
-    template_to_open = CONFIG['template_notebook']
-
-    if custom_template:
-        template_to_open = custom_template
-
-    if isContainer:
-        metric_name = defaultKey(str(cali_path))
-
-        unique_name = cali_path + ':' + metric_name
-        name_md5 = hashlib.md5(unique_name.encode('utf-8')).digest()
-        name = base64.urlsafe_b64encode(name_md5).decode('utf-8')
-        ntbk_fullpath = '/notebooks/spot/s{}.ipynb'.format(name)
-        
-        ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', '/usr/gapps/spot/caliper-install/bin')
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', '/usr/gapps/spot/')
-
-        try:
-            os.umask(0o133)
-            open(ntbk_fullpath, 'w').write(ntbk_template_str)
-        except:
-            pass
-        
-        jsonret = get_jupyter_info()
-        jsonret["path"] = ntbk_fullpath
-        print(json.dumps(jsonret))
-
-    else:
-        ntbk_dir = os.path.expanduser('~/spot_jupyter')
-        try:
-            os.mkdir(ntbk_dir)
-        except: pass
-
-        metric_name = defaultKey(str(cali_path))
-
-        ntbk_name = cali_path[ cali_path.rfind('/')+1:cali_path.rfind(".") ] + '.ipynb'
-        ntbk_path = os.path.join(ntbk_dir, ntbk_name)
-
-        try:
-            ntbk_template_str = open(template_to_open).read().replace('CALI_FILE_NAME', str(cali_path)).replace('CALI_METRIC_NAME', str(metric_name))
-        except Exception as e:
-            print(e)
-
-        ntbk_template_str = ntbk_template_str.replace('CALI_QUERY_PATH', cali_query_replace)
-        
-        dd = get_deploy_dir()
-        ntbk_template_str = ntbk_template_str.replace('DEPLOY_DIR', dd)
-
-        open(ntbk_path, 'w').write(ntbk_template_str)
-
-        # return Jupyterhub address
-        rz_or = "rz" if socket.gethostname().startswith('rz') else ""
-        end_path = urllib.parse.quote(os.path.basename(ntbk_path))
-
-        if args.ci_testing:
-            print(ntbk_path)
-        else:
-            print('https://{}lc.llnl.gov/jupyter/user/{}/notebooks/spot_jupyter/{}'.format( rz_or, getpass.getuser(), end_path ))
-
-
 def _prependDir(dirpath, fnames):
     return [os.path.join(dirpath, fname) for fname in fnames]
-
-
-def _getAdiakType(run, global_):
-    try: return run['attributes'][global_]["adiak.type"]
-    except: return None
-
-def _getAllDatabaseRuns(dbFilepath: str, lastRead: int):
-    if dbFilepath.endswith('.yaml'):
-        import yaml
-        import mysql.connector
-        dbConfig = yaml.load(open(dbFilepath), Loader=yaml.FullLoader)
-        mydb = mysql.connector.connect(**dbConfig)
-        db_placeholder = "%s"
-    else:
-        import sqlite3
-        mydb = sqlite3.connect(dbFilepath)
-        db_placeholder = "?"
-
-    cursor = mydb.cursor()
-
-    # get runs
-    runs = {}
-    runNum = int(lastRead)
-    cursor.execute('SELECT run, globals, records FROM Runs Where run > ' + db_placeholder, (runNum,))
-    for (runNum, _globals, record) in cursor:
-        runData = {}
-        for rec in json.loads(record):
-            funcpath = rec.pop('path', None)
-            if funcpath:
-                runData[funcpath] = rec
-
-        runGlobals = json.loads(_globals)
-        runs[runNum] = {'Globals': runGlobals, 'Data': runData}
-
-    # get global meta
-    cursor.execute('SELECT name, datatype FROM Metadata')
-    runGlobalMeta = {name: {'type': datatype} for (name, datatype) in cursor if datatype is not None}
-
-    return { 'Runs': runs
-           # 'RunDataMeta': runNum
-           , 'RunGlobalMeta': runGlobalMeta
-           , 'RunSetMeta': {'LastReadPosix': runNum}
-           }
-
-def _getAllCaliRuns(filepath, subpaths, maxlevels):
-    import multiprocessing
-    from pprint import pprint
-
-    cali_json = []
-    try:
-        cali_json = multiprocessing.Pool(18).map( _cali_to_json, _prependDir(filepath, subpaths))
-    except:
-        for fp in _prependDir(filepath, subpaths):
-            cali_json.append(_cali_to_json(fp))
-
-    try:
-        # process all new files to transfer to front-end
-        runs = {}
-        runDataMeta = {}
-        runGlobalMeta = {}
-
-        for (subpath, run) in zip(subpaths, cali_json):
-
-            runData = {}
-            runGlobals = {}
-
-            # get runData and runDataMeta
-            for record in run['records']:
-               funcpath = record.pop('path', None)
-
-               is_top_path = 0
-
-               if hasattr( funcpath, 'count'):
-                   is_top_path = funcpath.count('/') <= maxlevels 
-
-               if funcpath and is_top_path:
-                   runData[funcpath] = record
-
-            for metricName in list(runData.items())[0][1]:
-               runDataMeta[metricName] = {
-                   'type': run['attributes'][metricName]["cali.attribute.type"],
-                   'alias':run['attributes'][metricName].get("attribute.alias")
-               }
-
-            # get runGlobals and runGlobalMeta
-            for (global_, val) in run['globals'].items():
-                adiakType = _getAdiakType(run, global_)
-            
-                if global_ == "spot.options":
-                    if val == "timeseries":
-                        runGlobals['timeseries'] = 1
-
-                if adiakType:
-                    runGlobals[global_] = val
-          
-                    runGlobalMeta[global_] = {'type': adiakType}
-
-            # collect run
-            runs[subpath] = { 'Data': runData
-                      , 'Globals': runGlobals
-                      }
-
-    except:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            print('ERROR: While processing CALI file: ' + subpath + '<br><br>')
-            pprint(exc_obj)
-            print('<br><br>spot.py line_no=' + str(exc_tb.tb_lineno) )
-            print('<br><br>')
-
-    # output new data
-    return { 'Runs': runs
-           , 'RunDataMeta': runDataMeta
-           , 'RunGlobalMeta': runGlobalMeta
-           }
-
-def _getAllJsonRuns(filepath, subpaths, maxlevels):
-    output = {}
-    runs = {}
-
-    idx = -1  
-    for subpath in subpaths:
-
-        title = ""
-        the_key = ""
-        funcpath = ""
-        value = ""
-        values = ""
-
-        try:
-            whole_path = os.path.join( filepath, subpath )
-            data = json.load(open(whole_path))
-            commits = data.pop('commits')
-            title = data.pop('title')
-            yAxis = data.pop('yAxis')
-
-            show_is_exclusive = data.get('show_exclusive', 'Default')
- 
-            if show_is_exclusive != 'Default': 
-                 show_exclusive = data.pop('show_exclusive')
-
-            series = data.pop('series')
-
-            #pprint( subpath )
-            #pprint( title )
-
-            dates = []
-            the_key = subpath
-
-            for date in data.pop('XTics'):
- 
-                 #pprint(date)
-                 split_date = date.split(".")
-                 split_date_pre = split_date[0]
-                 our_date = datetime.strptime(split_date_pre, '%Y-%m-%d %H:%M:%S').timestamp()
-                 int_date = int(our_date)
-                 str_date = str(int_date)
-                 dates.append( str_date )
-
-
-
-
-            idx = idx + 1
-            com = commits[ idx ]
-            launchdate = dates[ idx ] 
-
-            #runs[the_key] = { 'Globals': { 'launchdate': launchdate , 'commit':  com , 'title': title }
-            #                                    , 'Data': {}
-            #                                    }
-            #pprint( dates ) 
-            #dates = [str(int(datetime.strptime(date, '%a %b %d %H:%M:%S %Y\n').timestamp())) for date in data.pop('XTics')]
- 
-            runSetName = subpath[0:subpath.find('.json')]
-
-            for i in range(len(dates)):
-                runs[runSetName + '-' + str(i)] = { 'Globals': { 'launchdate': dates[i]
-                                                            , 'commit': commits[i]
-                                                            , 'title': title
-                                                            , 'json':"1"
-                                                            }
-                                                , 'Data': {}
-                                                }
-
-
-            for funcpath, values in data.items():
-
-                #print( 'for funcpath(' + funcpath + ') values in data.items()' )
-                val0 = 1
-
-                for value in values:
-
-                    #val0 = 0
-                    #if type(value) is list:
-                    #     val0 = value[0]
-                
-                    val1 = 0 
-                    if type(value) is list:
-                         val1 = value[1]
-          
-                    #val0 = value[0]
-                    #val1 = value[1]
-
-                    rkey = runSetName + '-' + str(val0 - 1)
-                    val0 = val0 + 1
-                    #pprint( type(value))
-                    #pprint( rkey )
-                    #pprint( runs )
-                    #if rkey in runs: 
-                        #runs[rkey]['Data']['main'] = {'yAxis': 0}
-                        #if val1 > 0.5:
-
-                    is_top_path = funcpath.count('/') <= maxlevels
-
-                    if rkey in runs and is_top_path:
-                        #pprint( "is inside" )
-                        runs[rkey]['Data'][funcpath] = {'avg#inclusive#sum#time.duration': val1}
-         
-                    #runs[rkey]['Data']['main'] = {yAxis: 0}
-                    #runs[rkey]['Data'][funcpath] = {'yAxis': val1}
-
-        except:
-            debugi = 1 
-            if debugi == 1:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                print('ERROR: While processing subpath: ' + subpath)
-                pprint(exc_obj)
-                print('the_key=' + str(the_key))
-                print('title=' + title)
-                print('line_no=' + str(exc_tb.tb_lineno) )
-                print('Exception occurred:')
-                print('funcpath=' + funcpath)
-                pprint(value)
-                pprint( type(value))
-                pprint(values)
-                print()
-
-
-
-    return { 'Runs': runs
-           , 'RunDataMeta': {'avg#inclusive#sum#time.duration': {'type': 'double'}}
-           , 'RunGlobalMeta': { 'launchdate': {'type': 'date'}
-                              , 'commit': {'type': 'string'}
-                              }
-           }
-
-
-def _get_sina_data(database, lastRead):
-    import spotdb
-    sdb = spotdb.connect(database, read_only=True)
-
-    return { 'Runs': sdb.get_run_data(lastRead),
-             'RunDataMeta': sdb.get_metric_metadata(),
-             'RunGlobalMeta': sdb.get_global_metadata()
-        }
 
 
 def getTimeseriesData(args):
@@ -675,26 +248,6 @@ def getTimeseriesData(args):
 
     json.dump(output, sys.stdout)
 
-    #print(cali_path)
-    #exit()
-    #dd = get_deploy_dir()
-    #opdat = open( dd + '/templates/lo.json').read()
-
-    #filepath = "/usr/gapps/spot/datasets/lulesh_gen/100/33.cali"
-    # filepath = "/g/g0/pascal/spot_lulesh_timeseries_membw_8x4b.cali"
-    # try:
-    #     series = _cali_timeseries_to_json( cali_path )
-    # except:
-    #     a=1
-
-
-    # output = {}
-    # #output['std'] = opdat
-    # output['series'] = series
-    # output['cali_path'] = cali_path
-
-    # json.dump(output, sys.stdout, indent=4)
-
 
 def getCacheFileDate(args):
 
@@ -703,7 +256,7 @@ def getCacheFileDate(args):
     cali_filepath = args.cali_filepath
 
     filename = cali_filepath + '/cacheToFE.json'
-    output = {} 
+    output = {}
     mtime = 2000400500
 
     try:
@@ -718,7 +271,7 @@ def getCacheFileDate(args):
         #pprint(exc_obj)
         #print()
 
-        
+
     output['mtime'] = mtime
 
     json.dump(output, sys.stdout, indent=4)
@@ -740,188 +293,10 @@ def getDictionary(args):
 
 
 def returnErr( is_err, err_str ):
-    
+
     if is_err:
         print("ERROR: " + err_str)
         exit()
- 
-
-
-
-def _getData_old(args):
-    from pprint import pprint
-
-    maxlevels = args.maxLevels or 20
-    maxlevels = int(maxlevels)
-
-    update_usage_file("getData")
-    dataSetKey = args.dataSetKey
-    lastRead = args.lastRead or 0
-    poolCount = args.poolCount or "18"
-    writeToFile = args.writeToFile or 0
-    cachedRunCtimes = json.loads(args.cachedRunCtimes)
-        # {subpath: cachedCtime}
-    cacheFilename = "cacheToFE.json"
-    cachePath = dataSetKey + '/' + cacheFilename
-
-    if not writeToFile:
-       try:
-           f = open( cachePath )
-           allJSON = f.read()
-           print(allJSON)
-           f.close()
-           return 1
-
-       except IOError:
-           a=0  #print("File " + cachePath + " does not exists")
-
-
-    output = {}
-
-    # sql database
-    if dataSetKey.endswith(('.yaml', '.sqlite')) or dataSetKey.startswith('mysql'):
-        # output = _getAllDatabaseRuns(dataSetKey, lastRead)
-        output = _get_sina_data(dataSetKey, lastRead)
-
-    # file directory
-    else:
-        lastReadTime = float(lastRead)
-
-        # get subpaths of data files that were added since last read time
-        newRuns = []
-        jsonSubpaths = []
-        runCtimes = {}
-
-        import os
-        exi = os.path.exists(dataSetKey)
-
-        returnErr( not exi, 'Could not access directory: ' + dataSetKey)
-
-        for (dirpath, dirnames, filenames) in os.walk(dataSetKey):
-            for fname in filenames:
-                fp = os.path.join(dirpath, fname)
-                newCtime = os.stat(fp).st_ctime
-                dataSetKey = dataSetKey.rstrip('/')
-
-                splitKey = dataSetKey + '/'
-                runSpli = fp.split( splitKey )
-                len_el = len(runSpli)
-
-                if 1 < len_el:
-                	runKey = runSpli[1]
-                else:
-                        returnErr( 1, "I cannot split this filename: " + fp + " with splitKey = " + splitKey )
-
-                if fname.endswith('.cali'):
-                    runCtimes[runKey] = newCtime
-                    cachedCtime = cachedRunCtimes.get(runKey, 0)
-                    #print("runCtime=" + str(newCtime) + "  cachedCtime="+str(cachedCtime))
-
-                    if newCtime > cachedCtime:
-                        newRuns.append(runKey)
-
-                if fname.endswith('.json') and fname != "dictionary.json" and fname != "cacheToFE.json":
-                    jsonSubpaths.append(runKey)
-
-        deletedRuns = set(cachedRunCtimes.keys()).difference(set(runCtimes.keys()))
-
-        output = {}
-        json_output = {}
-        cali_output = {}
-
-        try:
-            if jsonSubpaths:
-                json_output = _getAllJsonRuns(dataSetKey, jsonSubpaths, maxlevels)
-
-        except:
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                
-                print('ERROR: While processing JSON subpaths.')
-                pprint(exc_obj)
-                print('spot.py line_no=' + str(exc_tb.tb_lineno) )
-                print('<br><br>')
-
-        if newRuns:
-            cali_output = _getAllCaliRuns(dataSetKey, newRuns, maxlevels)
-
-
-
-
-        if 'Runs' not in json_output:
-            json_output['Runs'] = {} 
-        
-        if 'Runs' not in cali_output:
-            cali_output['Runs'] = {} 
-
-        #pprint(json_output)
-        found = 'Found ' + str(len(json_output['Runs'].keys())) + ' runs in JSON format.  '
-        found += 'Found ' + str(len(cali_output['Runs'].keys())) + ' runs in cali format.  '
-
-        merge( json_output, output )
-        found += 'Total runs afer adding JSON runs: ' + str(len(output['Runs'].keys())) + '.  '
-
-        merge( cali_output, output )
-        found += 'Total runs afer adding cali runs: ' + str(len(output['Runs'].keys())) + '.  '
-
-
-        output['deletedRuns'] = list(deletedRuns)
-        output['runCtimes'] = runCtimes
-        output['foundReport'] = found
-        # impact whether or not to show jupyter button.
-        output['is_ale3d'] = "1"
-
-
-    #if 'Runs' not in json_output:
-    #    jstr = json.dumps(output)
-    #    print(jstr)
-    #    return 0
-
-
-    # old way
-    from RunTable import RunTable
-
-    runt = RunTable( output, poolCount )
-    table_text = runt.make_table_str()
-    pool_text = runt.make_pool_str()
-
-    myDictionary = json.loads( "{" + table_text + "}" )
-    output['dictionary'] = myDictionary["dictionary"]
-
-    #print(pool_text)
-    #exit()
-
-    #  this will temporarily prevent compression.
-    #output['Runs'] = json.loads( pool_text )
-
-    jstr = json.dumps(output)
-    pri_str = jstr
-
-    #  Currently not using pri_str because combined directories of json and cali will result in ,,,, need to fix that before can use the optimized version:
-    #pri_str = '{' + table_text + ',' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns":' + json.dumps(output["deletedRuns"]) + ', "runCtimes":' + json.dumps(output["runCtimes"]) + ', "foundReport":"' + found + '"}'
-
-    #print("writing to dataSetKey: " + dataSetKey )
-    #runt.write_dictionary_to_file( dataSetKey )
-    #pprint(output)
-    #exit()
-
-    if writeToFile == '1':
-       print('wrote file to: ' + cachePath)
-       f = open( cachePath, "w" )
-       f.write( pri_str )
-       f.close() 
-
-    else:
-       print(pri_str)
-
-    #pprint(json.loads(table_text))
-
-    #pprint( json_output )
-    #print(output)
-    #json.dump(output, sys.stdout, indent=4)
-
-    #jstr = json.dumps(output)
-    #print(jstr)
-
 
 
 def merge(source, destination):
@@ -944,7 +319,6 @@ def merge(source, destination):
     return destination
 
 
-
 def getData(args):
     import spotdb
 
@@ -961,8 +335,8 @@ def getData(args):
 
     db = spotdb.connect(dataset_key, read_only=True)
 
-    runs = [] 
-    
+    runs = []
+
     if last_read > 0:
         runs = db.get_new_runs(last_read)
     else:
@@ -979,59 +353,13 @@ def getData(args):
         if run in globals and run in records:
             rundata[run] = { "Data": records[run], "Globals": globals[run] }
 
-    output = { 
-        "Runs"          : rundata, 
-        "RunDataMeta"   : db.get_metric_attribute_metadata(), 
+    output = {
+        "Runs"          : rundata,
+        "RunDataMeta"   : db.get_metric_attribute_metadata(),
         "RunGlobalMeta" : db.get_global_attribute_metadata()
     }
 
     return json.dump(output, sys.stdout)
-
-
-def getRun(runId, db=None):
-    # sql database
-    if db:
-        if db.endswith('.yaml'):
-            import yaml
-            import mysql.connector
-            dbConfig = yaml.load(open(db), Loader=yaml.FullLoader)
-            mydb = mysql.connector.connect(**dbConfig)
-            db_placeholder = "%s"
-        else:
-            import sqlite3
-            mydb = sqlite3.connect(db)
-            db_placeholder = "?"
-
-        cursor = mydb.cursor()
-
-        # get run
-        cursor.execute('SELECT globals, records FROM Runs Where run = ' + db_placeholder, (runId,))
-        rec = next(cursor)
-        runGlobals = json.loads(rec[0])
-        runData = json.loads(rec[1])
-        output = {'records': runData, 'globals': runGlobals}
-
-    # .cali file directory
-    else:
-        output = _cali_to_json(runId)
-        del output['attributes']
-    return output
-
-
-def getHatchetLiteral(runId, db=None):
-    funcPathDict = {line.pop('path'): line for line in getRun(runId, db)['records'] if line.get('path', None)}
-
-    def buildTree(nodeName):
-        node = {}
-        node['name'] = nodeName.split('/')[-1]
-        node['metrics'] = funcPathDict[nodeName]
-        childrenPaths = [childPath for childPath in funcPathDict.keys()
-                         if len(childPath.split('/')) == len(nodeName.split('/')) + 1 and childPath.startswith(nodeName)]
-        if childrenPaths:
-            node['children'] = [buildTree(childPath) for childPath in childrenPaths]
-        return node
-
-    return [buildTree(min(funcPathDict.keys()))]
 
 
 if __name__ == "__main__":
@@ -1052,11 +380,6 @@ if __name__ == "__main__":
     getTemplates_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
     getTemplates_sub.set_defaults(func=getTemplates)
 
-    jupyter_sub = subparsers.add_parser("jupyter")
-    jupyter_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
-    jupyter_sub.add_argument("--custom_template",  help="specify which template path/file to use")
-    jupyter_sub.set_defaults(func=jupyter)
-
     getCacheFileDate_sub = subparsers.add_parser("getCacheFileDate")
     getCacheFileDate_sub.set_defaults(func=getCacheFileDate)
     getCacheFileDate_sub.add_argument("cali_filepath", help="create a notebook to check out a sweet cali file")
@@ -1075,11 +398,6 @@ if __name__ == "__main__":
     getData_sub.add_argument("--maxLevels",  help="specify number of levels to show for flamecharts")
     getData_sub.add_argument("--lastRead",  help="posix time with decimal for directories, run number for database")
     getData_sub.set_defaults(func=getData)
-
-    getRun_sub = subparsers.add_parser("getRun")
-    getRun_sub.add_argument("runId",  help="filepath or db run number")
-    getRun_sub.add_argument("--db",  help="yaml config file, or sqlite DB")
-    getRun_sub.set_defaults(func=lambda args: json.dump(getRun(args.runId, args.db), sys.stdout, indent=4))
 
     getDictionary_sub = subparsers.add_parser("getDictionary")
     getDictionary_sub.add_argument("dataSetKey",  help="directory path of files, or yaml config file")
