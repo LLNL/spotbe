@@ -1,6 +1,9 @@
 #!/usr/gapps/spot/venv_python/bin/python3
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
+import hashlib
+import base64
+
 from pprint import pprint
 
 from datetime import datetime
