@@ -183,9 +183,10 @@ def multi_jupyter(args):
         except:
             pass
 
-        jsonret = get_jupyter_info()
-        jsonret["path"] = fullpath
-        print(json.dumps(jsonret))
+        print(json.dumps(fullpath))
+        #jsonret = get_jupyter_info()
+        #jsonret["path"] = fullpath
+        #print(json.dumps(jsonret))
 
     else:
         ntbk_dir = os.path.expanduser('~/spot_jupyter')
