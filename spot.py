@@ -12,6 +12,8 @@ import sys
 
 
 def get_deploy_dir():
+    #return '/usr/gapps/spot/'
+
     is_live = 1
     pre_dir = '/usr/gapps/spot/'
 
@@ -183,6 +185,7 @@ def multi_jupyter(args):
         except:
             pass
 
+        #print(fullpath)
         jsonret = get_jupyter_info()
         jsonret["path"] = fullpath
         print(json.dumps(jsonret))
