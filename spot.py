@@ -336,6 +336,21 @@ def getData(args):
     if not result:
         return result
 
+    writeToFile = args.writeToFile or 0
+    cacheFilename = "cacheToFE.json"
+    cachePath = dataset_key + '/' + cacheFilename
+
+    if not writeToFile:
+       try:
+           f = open( cachePath )
+           allJSON = f.read()
+           print(allJSON)
+           f.close()
+           return 1
+
+       except IOError:
+           a=0  #print("File " + cachePath + " does not exists")
+
     db = spotdb.connect(dataset_key, read_only=True)
 
     runs = []
@@ -361,6 +376,14 @@ def getData(args):
         "RunDataMeta"   : db.get_metric_attribute_metadata(),
         "RunGlobalMeta" : db.get_global_attribute_metadata()
     }
+
+    if writeToFile == '1':
+       jstr = json.dumps(output)
+       pri_str = jstr
+       print('wrote file to: ' + cachePath)
+       f = open( cachePath, "w" )
+       f.write( pri_str )
+       f.close()
 
     return json.dump(output, sys.stdout)
 
