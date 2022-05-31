@@ -18,7 +18,10 @@ def get_spot_v1_attribute_metadata():
 
 def is_spot_v1_file(filename):
     with open(filename) as f:
-        obj = json.load(f)
+        try:
+            obj = json.load(f)
+        except:
+            return False
     
     return 'XTics' in obj and 'commits' in obj
 
@@ -42,12 +45,12 @@ def read_spot_v1_contents(filename):
     dates = []
 
     for date in obj.pop('XTics'):
-            split_date = date.split(".")
-            split_date_pre = split_date[0]
-            our_date = datetime.strptime(split_date_pre, '%Y-%m-%d %H:%M:%S').timestamp()
-            int_date = int(our_date)
-            str_date = str(int_date)
-            dates.append( str_date )
+        split_date = date.split(".")
+        split_date_pre = split_date[0]
+        our_date = datetime.strptime(split_date_pre, '%Y-%m-%d %H:%M:%S').timestamp()
+        int_date = int(our_date)
+        str_date = str(int_date)
+        dates.append( str_date )
 
     basename = os.path.basename(filename)
     base_key = basename[0:basename.find('.json')]
