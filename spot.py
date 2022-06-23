@@ -327,6 +327,7 @@ def getData(args):
 
     dataset_key = args.dataSetKey
     last_read = args.lastRead or 0
+    maxLevels = args.maxLevels or 20
 
     from ErrorHandling import ErrorHandling
 
@@ -382,9 +383,11 @@ def getData(args):
 
        from RunTable import RunTable
 
-       runt = RunTable( output, 18 )
+       #pprint(output)
+
+       runt = RunTable( output, 18, maxLevels )
        table_text = runt.make_table_str()
-       pool_text = runt.make_pool_str()
+       pool_text = runt.make_pool_str( dataset_key )
 
        myDictionary = json.loads( "{" + table_text + "}" )
        output['dictionary'] = myDictionary["dictionary"]
@@ -403,6 +406,7 @@ def getData(args):
        f.close()
        return 1
 
+    #return output
     return json.dump(output, sys.stdout)
 
 
