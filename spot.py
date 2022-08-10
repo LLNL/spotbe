@@ -330,6 +330,7 @@ def getData(args):
 
     dataset_key = args.dataSetKey
     last_read = args.lastRead or 0
+    maxLevels = args.maxLevels or 20
 
     from ErrorHandling import ErrorHandling
 
@@ -380,14 +381,35 @@ def getData(args):
         "RunGlobalMeta" : db.get_global_attribute_metadata()
     }
 
+    #  Please do not DELETE.  this is necessary to create the cacheToFE.json
     if writeToFile == '1':
+
+       from RunTable import RunTable
+
+       #pprint(output)
+
+       runt = RunTable( output, 18, maxLevels )
+       table_text = runt.make_table_str()
+       pool_text = runt.make_pool_str( dataset_key )
+
+       myDictionary = json.loads( "{" + table_text + "}" )
+       output['dictionary'] = myDictionary["dictionary"]
+
        jstr = json.dumps(output)
        pri_str = jstr
+
+       #  Currently not using pri_str because combined directories of json and cali will result in ,,,, need to fix that before can use the optimized version:
+       pri_str = '{' + table_text + ',"Runs":' + pool_text + ', "RunDataMeta":' + json.dumps(output["RunDataMeta"]) + ', "RunGlobalMeta":' + json.dumps(output["RunGlobalMeta"]) + ', "deletedRuns": [], "runCtimes":[], "foundReport":"0"}'
+
+       #jstr = json.dumps(output)
+       #pri_str = jstr
        print('wrote file to: ' + cachePath)
        f = open( cachePath, "w" )
        f.write( pri_str )
        f.close()
+       return 1
 
+    #return output
     return json.dump(output, sys.stdout)
 
 

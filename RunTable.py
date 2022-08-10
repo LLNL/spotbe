@@ -7,8 +7,9 @@ from pprint import pprint
 
 class RunTable:
     
-    def __init__(self, json_runs, poolCount ):
+    def __init__(self, json_runs, poolCount, maxLevels ):
 
+        self.maxLevels = int(maxLevels) - 1
         self.json_runs = json_runs       
         self.between_table = {}
         self.poolCount = int(poolCount)
@@ -113,6 +114,13 @@ class RunTable:
         for (long_generator_str) in Data:
 
             yAxis_payload = Data[long_generator_str]
+            new_payload = {}
+
+            # experimental string size shrinker. 
+            for (ypayload_key) in yAxis_payload:
+                short_key = ypayload_key[0:4]
+                new_payload[short_key] = yAxis_payload[ypayload_key]
+
             compressed_gen_str = long_generator_str
 
             for (between_str) in self.between_table:
@@ -120,7 +128,10 @@ class RunTable:
                 enc = self.between_table[ between_str ]
                 compressed_gen_str = compressed_gen_str.replace( between_str, enc )
 
-            dict_compressed_gdr_obj[ compressed_gen_str ] = yAxis_payload
+
+            if compressed_gen_str.count('/') <= self.maxLevels:
+                #pprint( compressed_gen_str )
+                dict_compressed_gdr_obj[ compressed_gen_str ] = yAxis_payload
 
         return dict_compressed_gdr_obj
 
@@ -140,7 +151,7 @@ class RunTable:
         return '"values":{' + compare_str[1:] + '}'
 
 
-    def make_pool_str(self):
+    def make_pool_str(self, dataset_key):
 
         runs = self.json_runs['Runs']
         runs_arr = []
@@ -168,12 +179,52 @@ class RunTable:
             while("" in pool_res):
                pool_res.remove("")
 
-            #pprint( pool_res )
-
             pool_str = ",".join( pool_res )
             compare_str = '"Runs":{' + pool_str + '}'
           
             return "{" + pool_str + "}"   #compare_str
+           
+            # Optimization for run groups. 
+            pool_of_runs = []
+            pool_idx = 0
+            append_idx = 0
+
+            for (pool_append) in pool_res:
+
+                if len(pool_of_runs) <= pool_idx:
+                    pool_of_runs.append([])
+
+                #pool_append = pool_res[i]
+                pool_of_runs[pool_idx].append( pool_append )
+
+                append_idx = append_idx + 1
+
+                if append_idx > 10:
+                    pool_idx = pool_idx + 1
+                    append_idx = 0
+
+
+            #pprint( pool_of_runs )
+
+            self.print_runs_to_file( pool_res, dataset_key )
+            return pool_of_runs
+
+
+    def print_runs_to_file( self, pool_of_runs, dataset_key ):
+       
+        #path = "/usr/gapps/spot/datasets/lulesh_gen/3/runs_group" 
+        path = dataset_key + '/runs_group'
+        loop_idx = 0
+
+        for ( run_arr ) in pool_of_runs:
+
+            #ten_run_str = ",".join(run_arr)
+
+            f = open( path + str(loop_idx) + '.json', "w" )
+            f.write( '{' + run_arr + '}' )
+            f.close()
+            loop_idx = loop_idx+1
+        return 1
 
 
     def split_workload( self, runs_arr, split_count ):
