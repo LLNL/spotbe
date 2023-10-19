@@ -1,4 +1,6 @@
-#!/usr/gapps/spot/venv_python/bin/python3
+#!/usr/gapps/spot/dev/venv_2023/bin/python3
+
+###/usr/gapps/spot/venv_python/bin/python3
 import argparse, json, sys, os, platform, subprocess, getpass, urllib.parse, socket, time
 import cProfile
 import hashlib
